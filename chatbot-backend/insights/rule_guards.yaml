@@ -1,0 +1,63 @@
+# Rule guard configuration for the insight pipeline.
+#
+# HOW TO ADD NEW BANS:
+#   - Simple banned words/phrases: add to `string_ban_patterns` (substring match, case-insensitive)
+#   - Regex patterns: add to `regex_ban_patterns` (full regex match)
+#   - Medical terms: add to `medical_ban_patterns`
+#   - Time-phase constraints: add to `action_phase_constraints`
+#
+# RULES FOR EDITING THIS FILE:
+#   - string_ban_patterns: exact phrases, one per line, case-insensitive
+#   - regex_ban_patterns: must be valid Python regex
+#   - medical_ban_patterns: medical jargon that must not appear in narrative_hook or expert_technique
+#   - action_phase_constraints: each action_bias maps to a list of forbidden time_phases
+
+# ── Simple string patterns (substring match, case-insensitive) ──────────────────
+string_ban_patterns:
+  - "nợ ngủ"
+  - "nợ giấc ngủ"
+  - "stress=True"
+
+# ── Regex patterns (full regex match) ─────────────────────────────────────────
+regex_ban_patterns:
+  - pattern: "deficit\\s*=\\s*[\\d.]+h"
+    description: "Raw variable deficit format"
+  - pattern: "\\(nợ ngủ\\s*=\\s*[\\d.]+h\\)"
+    description: "Parenthesized deficit variable"
+  - pattern: "(?<!công)(?<!nợ n)[\\s\\(]nợ\\s+[\\d.]+\\s*giờ"
+    description: "Ban: 'nợ X giờ' — use 'thiếu X giờ ngủ' instead"
+  - pattern: "(?<!công)(?<!nợ n)nợ\\s*[:=]?\\s*[\\d.]+"
+    description: "Ban: 'nợ=X' variable form"
+
+# ── Medical jargon ban (narrative_hook + expert_technique only) ─────────────────
+medical_ban_patterns:
+  - "cortisol"
+  - "amygdala"
+  - "adenosine"
+  - "prefrontal cortex"
+  - "hệ thần kinh"
+  - "hệ giao cảm"
+  - "đối giao cảm"
+  - "áp lực sinh lý"
+  - "não bộ quá tải"
+  - "hệ thần kinh bị quá tải"
+
+action_phase_constraints:
+  heavy_cardio:
+    forbidden: ["evening", "after_work", "wind_down", "late_night", "bedtime"]
+  micro_movement:
+    forbidden: ["evening", "after_work", "wind_down", "late_night", "bedtime"]
+  zone2_walking:
+    forbidden: ["evening", "after_work", "wind_down", "late_night", "bedtime"]
+  outdoor_walk:
+    forbidden: ["evening", "after_work", "wind_down", "late_night", "bedtime"]
+  morning_activation:
+    forbidden: ["evening", "wind_down", "late_night", "bedtime"]
+  deep_work_sprint:
+    forbidden: ["late_night", "bedtime"]
+  tactical_execution:
+    forbidden: ["late_night", "bedtime"]
+  flow_maintenance:
+    forbidden: ["late_night", "bedtime"]
+  workspace_organization:
+    forbidden: ["late_night", "bedtime"]

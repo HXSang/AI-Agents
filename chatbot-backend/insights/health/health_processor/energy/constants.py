@@ -1,0 +1,36 @@
+"""Energy / active-burn signal thresholds."""
+
+ENERGY_SUMMARY_WINDOW_DAYS = 7
+ENERGY_MIN_DAYS_FOR_TREND = 2
+ENERGY_MIN_DAYS_FOR_CONSISTENCY = 3
+ENERGY_MIN_DAYS_FOR_PATTERN = 3
+
+# Trend: relative change in daily burn (fraction of prior mean)
+ENERGY_TREND_SIGNIFICANT_FRAC = 0.10  # ±10%
+ENERGY_TREND_WINDOWS_DAYS = (3, 7)
+
+# Week vs prior-month level ladders (% change) — legacy level mapping
+ENERGY_LEVEL_SEVERE_PCT = -40.0
+ENERGY_LEVEL_MODERATE_PCT = -20.0
+ENERGY_LEVEL_MILD_PCT = -10.0
+
+# Baseline qualitative bands (% vs month refs)
+ENERGY_VS_BASELINE_HIGHER_PCT = 10.0
+ENERGY_VS_BASELINE_LOWER_PCT = -10.0
+ENERGY_VS_BASELINE_NORMAL_PCT = 5.0
+
+# Consistency: CV = std/mean → score
+ENERGY_CONSISTENCY_HIGH_CV = 0.15  # CV ≤ 15% → high
+ENERGY_CONSISTENCY_MED_CV = 0.30
+
+# Anomaly: day vs window mean
+ENERGY_ANOMALY_LOW_FRAC = 0.70  # < 70% of mean
+ENERGY_ANOMALY_HIGH_FRAC = 1.40  # > 140% of mean
+ENERGY_ANOMALY_SPIKE_FRAC = 1.50
+ENERGY_ANOMALY_DROP_FRAC = 0.60
+
+# Overall score weights (0–100)
+ENERGY_OVERALL_WEIGHT_VOLUME = 0.35
+ENERGY_OVERALL_WEIGHT_CONSISTENCY = 0.25
+ENERGY_OVERALL_WEIGHT_TREND = 0.20
+ENERGY_OVERALL_WEIGHT_BASELINE = 0.20

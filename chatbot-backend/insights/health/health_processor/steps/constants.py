@@ -1,0 +1,51 @@
+"""Steps / activity signal thresholds (step-processor.md)."""
+
+STEPS_SUMMARY_WINDOW_DAYS = 7
+STEPS_MIN_DAYS_FOR_TREND = 2
+STEPS_MIN_DAYS_FOR_CONSISTENCY = 3
+STEPS_MIN_DAYS_FOR_PATTERN = 3
+
+# Legacy day-progress sanity (also used by HealthInsightProcessor guards)
+STEPS_VERY_LOW_DAY_PROGRESS = 2000
+
+# Classification bands (daily steps) — step-processor.md §7
+STEPS_SEDENTARY_MAX = 2999
+STEPS_LIGHTLY_ACTIVE_MAX = 6999
+STEPS_ACTIVE_MAX = 9999
+# ≥ 10000 → highly_active
+
+# Goal achievement status bands (completion %)
+STEPS_GOAL_HIGH_PCT = 90.0
+STEPS_GOAL_MODERATE_PCT = 60.0
+STEPS_GOAL_LOW_PCT = 30.0
+
+# Volume status vs average steps
+STEPS_VOLUME_HIGH = 10000
+STEPS_VOLUME_GOOD = 7000
+STEPS_VOLUME_MODERATE = 3000
+
+# Trend: relative change first→last complete day
+STEPS_TREND_SIGNIFICANT_FRAC = 0.10  # ±10%
+
+# Consistency: CV = std/mean
+STEPS_CONSISTENCY_HIGH_CV = 0.15
+STEPS_CONSISTENCY_MED_CV = 0.30
+
+# Baseline qualitative bands (% vs month refs)
+STEPS_VS_BASELINE_HIGHER_PCT = 10.0
+STEPS_VS_BASELINE_LOWER_PCT = -10.0
+STEPS_VS_BASELINE_NORMAL_PCT = 5.0
+
+# Anomaly: day vs window mean
+STEPS_ANOMALY_VERY_LOW_FRAC = 0.50
+STEPS_ANOMALY_EXTREME_HIGH_FRAC = 1.80
+STEPS_ANOMALY_SPIKE_FRAC = 1.50
+STEPS_ANOMALY_DROP_FRAC = 0.60
+STEPS_ANOMALY_VERY_LOW_ABS = 2000
+STEPS_ANOMALY_EXTREME_HIGH_ABS = 25000
+
+# Overall score weights (0–100)
+STEPS_OVERALL_WEIGHT_VOLUME = 0.30
+STEPS_OVERALL_WEIGHT_GOAL = 0.30
+STEPS_OVERALL_WEIGHT_CONSISTENCY = 0.20
+STEPS_OVERALL_WEIGHT_TREND = 0.20

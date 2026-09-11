@@ -1,0 +1,2798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>Insight Pipeline · Debug</title>
+<style>
+  :root {
+    --bg-0: #0b1020;
+    --bg-1: #121831;
+    --bg-2: #1a2143;
+    --bg-3: #232c54;
+    --border: #2a335c;
+    --text: #e6e9f5;
+    --text-dim: #9aa3c4;
+    --accent: #7c9cff;
+    --accent-2: #8be9fd;
+    --green: #50fa7b;
+    --yellow: #f1fa8c;
+    --orange: #ffb86c;
+    --red: #ff6e6e;
+    --health: #50fa7b;
+    --productivity: #ffb86c;
+    --overall: #bd93f9;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif;
+    background: linear-gradient(180deg, var(--bg-0) 0%, #0a0e1f 100%);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .container { max-width: 1700px; margin: 0 auto; padding: 24px; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px;
+    background: linear-gradient(90deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 24px;
+  }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: 0.3px; }
+  header .sub { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    background: rgba(124, 156, 255, 0.15); color: var(--accent);
+    font-size: 12px; margin-left: 8px;
+  }
+  .badge.mock { background: rgba(80, 250, 123, 0.15); color: var(--green); }
+
+  .controls {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .mode-tabs {
+    display: flex; gap: 8px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .mode-tab {
+    padding: 10px 18px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    color: var(--text-dim);
+    font-size: 13px; font-weight: 600;
+    background: var(--bg-2);
+    transition: all 0.15s ease;
+  }
+  .mode-tab:hover { color: var(--text); }
+  .mode-tab.active {
+    background: var(--bg-3);
+    color: var(--accent);
+    border-color: var(--border);
+  }
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    align-items: end;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 11px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .field input, .field select, .field textarea {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    width: 100%;
+    min-width: 0;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  textarea {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    width: 100%;
+    min-width: 0;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .field input, .field select, .field textarea {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+  }
+  .field textarea {
+    min-height: 80px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 12px;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+  button {
+    cursor: pointer;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: transform 0.05s ease, box-shadow 0.15s ease;
+  }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(135deg, #7c9cff, #5d7fff);
+    color: #0b1020;
+    box-shadow: 0 4px 14px rgba(124, 156, 255, 0.3);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 20px rgba(124, 156, 255, 0.5); }
+  .btn-secondary {
+    background: var(--bg-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--bg-3); }
+
+  .status {
+    margin-bottom: 20px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.info { background: rgba(124, 156, 255, 0.12); color: var(--accent); border: 1px solid rgba(124, 156, 255, 0.3); }
+  .status.success { background: rgba(80, 250, 123, 0.12); color: var(--green); border: 1px solid rgba(80, 250, 123, 0.3); }
+  .status.error { background: rgba(255, 110, 110, 0.12); color: var(--red); border: 1px solid rgba(255, 110, 110, 0.3); }
+
+/* Two-panel layout (Raw Data + Pipeline) */
+.layout {
+  display: grid;
+  grid-template-columns: 560px 1fr;
+  gap: 20px;
+}
+  @media (max-width: 1400px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ── Raw summary view ───────────────────────────────────── */
+  .raw-summary { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; overflow: auto; flex: 1 1 auto; min-height: 0; }
+  .raw-summary-empty { color: var(--text-dim); font-size: 12px; padding: 14px; text-align: center; border: 1px dashed var(--border); border-radius: 10px; }
+  .raw-summary-header {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    background: #0e1228; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; font-size: 12px;
+  }
+  .raw-summary-header .hs-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #1a2042; padding: 4px 10px; border-radius: 999px; color: var(--text);
+  }
+  .raw-summary-header .hs-chip b { color: var(--accent); }
+  .raw-summary-toggle {
+    margin-left: auto; font-size: 11px; color: var(--text-dim); cursor: pointer; user-select: none;
+  }
+  .raw-summary-toggle:hover { color: var(--accent); }
+
+  .raw-section-card {
+    background: #0e1228; border: 1px solid var(--border); border-radius: 10px;
+    padding: 0; overflow: hidden;
+  }
+  .raw-section-card > summary {
+    list-style: none; cursor: pointer; padding: 10px 14px;
+    display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; align-items: center;
+  }
+  .raw-section-card > summary::-webkit-details-marker { display: none; }
+  .raw-section-card > summary:hover { background: #13183a; }
+  .raw-section-card[open] > summary { border-bottom: 1px solid var(--border); background: #13183a; }
+  .raw-section-card .sec-icon { font-size: 18px; }
+  .raw-section-card .sec-name {
+    font-family: 'SF Mono', Menlo, monospace; font-size: 13px; color: var(--accent);
+    font-weight: 600;
+  }
+  .raw-section-card .sec-type {
+    font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: #1a2042; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .raw-section-card .sec-meta {
+    grid-column: 2 / 4; font-size: 11px; color: var(--text-dim);
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .raw-section-card .sec-meta .badge {
+    background: #1a2042; padding: 2px 8px; border-radius: 4px; color: var(--text);
+  }
+  .raw-section-card .sec-body { padding: 12px 14px; font-size: 12px; }
+  .raw-section-card .hl-row {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.05);
+  }
+  .raw-section-card .hl-row:last-child { border-bottom: none; }
+  .raw-section-card .hl-key {
+    font-family: 'SF Mono', Menlo, monospace; color: var(--text-dim);
+  }
+  .raw-section-card .hl-val {
+    font-family: 'SF Mono', Menlo, monospace; color: var(--text); text-align: right;
+  }
+  .raw-section-card .hl-val em { color: var(--text-dim); font-style: normal; margin-right: 4px; }
+  .raw-section-card .hl-empty { color: var(--text-dim); font-style: italic; padding: 6px 0; }
+  .raw-section-card .hl-section-title {
+    font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.6px;
+    margin: 8px 0 4px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.08);
+  }
+  .raw-section-card .hl-section-title:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+  .raw-section-card .group-header { background: rgba(102, 126, 234, 0.06); padding: 6px 4px; border-radius: 6px; margin: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.08) !important; }
+  .raw-section-card .sec-json-toggle { margin-top: 8px; font-size: 11px; color: var(--text-dim); cursor: pointer; }
+  .raw-section-card .sec-json-toggle:hover { color: var(--accent); }
+  .raw-section-card .sec-json {
+    margin: 6px 0 0; background: #07091a; border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px; font-size: 11px; max-height: 320px; overflow: auto;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .raw-section-card .sec-json summary { padding: 0; display: block; }
+  .raw-section-card .sec-json pre { margin: 6px 0 0; }
+
+  /* Hide the old raw-pre when summary is populated */
+  body.raw-summary-mode .raw-pre { display: none; }
+  body:not(.raw-summary-mode) .raw-summary { display: none !important; }
+
+  /* ── Tier badges ─────────────────────────────────────────────── */
+  .sec-tier { display: inline-flex; align-items: center; }
+  .sec-tier-badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 999px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .sec-tier-badge.tier-primary  { background: rgba(72,199,116,0.18); color: #48c774; }
+  .sec-tier-badge.tier-raw_api  { background: rgba(255,184,0,0.15);  color: #ffb800; }
+  .sec-tier-badge.tier-metadata { background: rgba(140,140,180,0.15); color: #8c8cb4; }
+  .sec-tier-badge.tier-redundant{ background: rgba(255,80,80,0.15);  color: #ff5050; }
+  .sec-tier-badge.tier-unknown  { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+
+  /* ── Dropped keys block ─────────────────────────────────────── */
+  .raw-dropped-block {
+    background: rgba(255,80,80,0.06); border: 1px solid rgba(255,80,80,0.25);
+    border-radius: 10px; overflow: hidden; font-size: 12px;
+  }
+  .raw-dropped-block > summary {
+    list-style: none; cursor: pointer; padding: 8px 12px;
+    color: #ff7070; font-size: 12px;
+  }
+  .raw-dropped-block > summary::-webkit-details-marker { display: none; }
+  .raw-dropped-block > summary:hover { background: rgba(255,80,80,0.08); }
+  .raw-dropped-block[open] > summary { border-bottom: 1px solid rgba(255,80,80,0.2); }
+  .raw-dropped-list { padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .dropped-chip {
+    font-family: 'SF Mono', Menlo, monospace; font-size: 11px;
+    background: rgba(255,80,80,0.12); border: 1px solid rgba(255,80,80,0.25);
+    border-radius: 6px; padding: 3px 8px; color: #ff8080;
+  }
+  .raw-pre {
+    background: #07091a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    overflow: auto;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text);
+    flex: 1;
+    min-height: 60vh;
+    max-height: none;
+    white-space: pre;
+    tab-size: 2;
+    cursor: text;
+  }
+  .raw-pre .key { color: var(--accent); }
+  .raw-pre .str { color: var(--green); }
+  .raw-pre .num { color: var(--orange); }
+  .raw-pre .bool { color: var(--accent-2); }
+  .raw-pre .null { color: var(--text-dim); }
+  .raw-editor {
+    display: none;
+    flex: 1;
+    background: #07091a;
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text);
+    resize: none;
+    min-height: 60vh;
+    outline: none;
+    white-space: pre;
+    tab-size: 2;
+  }
+  .raw-editor.show { display: block; }
+  .raw-editor.invalid { border-color: var(--red); }
+  .raw-status {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    min-height: 14px;
+  }
+  .raw-status.ok { color: var(--green); }
+  .raw-status.err { color: var(--red); }
+  .raw-actions {
+    display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .raw-actions button {
+    flex: 1 1 auto;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .pipeline-panel {
+    min-width: 0;
+  }
+
+  /* Domain cards grid — now 4 columns (API Raw + Health + Productivity + Overall) */
+  .domains {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 1600px) { .domains { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 1100px) { .domains { grid-template-columns: 1fr; } }
+
+  .domain-card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .domain-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .domain-header h2 {
+    margin: 0; font-size: 15px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block;
+  }
+  .dot.health { background: var(--health); box-shadow: 0 0 10px var(--health); }
+  .dot.productivity { background: var(--productivity); box-shadow: 0 0 10px var(--productivity); }
+  .dot.overall { background: var(--overall); box-shadow: 0 0 10px var(--overall); }
+
+  .domain-status {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    background: var(--bg-2); color: var(--text-dim);
+  }
+  .domain-status.running { background: rgba(241, 250, 140, 0.15); color: var(--yellow); }
+  .domain-status.success { background: rgba(80, 250, 123, 0.15); color: var(--green); }
+  .domain-status.error { background: rgba(255, 110, 110, 0.15); color: var(--red); }
+
+  .phases { padding: 8px; flex: 1; }
+  .phase {
+    border: 1px solid transparent;
+    border-radius: 12px;
+    margin: 6px 0;
+    background: var(--bg-2);
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+  }
+  .phase.active { border-color: var(--accent); }
+  .phase.done { border-color: rgba(80, 250, 123, 0.4); }
+  .phase.error { border-color: rgba(255, 110, 110, 0.5); }
+
+  .phase-header {
+    padding: 11px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .phase-header:hover { background: rgba(124, 156, 255, 0.06); }
+  .phase.open > .phase-header { background: rgba(124, 156, 255, 0.04); }
+  .phase-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 500;
+  }
+  .phase-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--bg-1);
+    color: var(--text-dim);
+    font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+  }
+  .phase.active .phase-num { background: var(--accent); color: #0b1020; border-color: var(--accent); }
+  .phase.done .phase-num { background: var(--green); color: #0b1020; border-color: var(--green); }
+  .phase.error .phase-num { background: var(--red); color: #0b1020; border-color: var(--red); }
+
+  .phase-toggle {
+    color: var(--text-dim);
+    font-size: 14px;
+    transition: transform 0.15s;
+  }
+  .phase.open .phase-toggle { transform: rotate(180deg); }
+
+  .phase-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .phase-time {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-2);
+    background: rgba(139, 233, 253, 0.12);
+    border: 1px solid rgba(139, 233, 253, 0.25);
+    border-radius: 999px;
+    padding: 2px 8px;
+    min-width: 52px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .phase-time.empty {
+    color: var(--text-dim);
+    background: transparent;
+    border-color: transparent;
+  }
+  .phase-time.slow {
+    color: var(--orange);
+    background: rgba(255, 184, 108, 0.12);
+    border-color: rgba(255, 184, 108, 0.3);
+  }
+  .phase-time.fast {
+    color: var(--green);
+    background: rgba(80, 250, 123, 0.12);
+    border-color: rgba(80, 250, 123, 0.25);
+  }
+
+  .phase-body {
+    padding: 0 14px 14px;
+    display: none;
+    max-height: 400px;
+    overflow: auto;
+  }
+  .phase.open > .phase-body { display: block; }
+  .phase[data-phase="s1_extract"].open > .phase-body {
+    max-height: min(72vh, 920px);
+  }
+
+  .api-source-block {
+    margin: 12px 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .api-source-head {
+    padding: 8px 12px;
+    background: rgba(124, 156, 255, 0.08);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: baseline;
+  }
+  .api-source-head .src-tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    background: rgba(139, 233, 253, 0.12);
+    border: 1px solid rgba(139, 233, 253, 0.25);
+    border-radius: 999px;
+    padding: 1px 8px;
+  }
+  .api-callout {
+    margin: 10px 0 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(241, 250, 140, 0.35);
+    background: rgba(241, 250, 140, 0.08);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .api-callout code { color: var(--yellow); }
+  .api-map-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin: 8px 0 4px;
+  }
+  .api-map-table th, .api-map-table td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .api-map-table th {
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-size: 10px;
+  }
+  .api-map-table tr.dup-path td { background: rgba(241, 250, 140, 0.06); }
+  .api-fetch summary::-webkit-details-marker { display: none; }
+  .phase-body pre {
+    margin: 0;
+    padding: 12px;
+    background: #07091a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .phase-body .prose {
+    padding: 10px 12px;
+    background: #07091a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* Phase description styling */
+  .phase-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 6px 14px;
+    border-top: 1px dashed var(--border);
+    background: rgba(124, 156, 255, 0.04);
+  }
+
+  /* Phase type badges */
+  .phase-badge {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-left: 6px;
+  }
+  .phase-badge.rule { background: rgba(139, 233, 253, 0.2); color: var(--accent-2); }
+  .phase-badge.llm { background: rgba(189, 147, 249, 0.2); color: var(--overall); }
+  .phase-badge.random { background: rgba(241, 250, 140, 0.2); color: var(--yellow); }
+  .phase-badge.input { background: rgba(255, 184, 108, 0.2); color: var(--orange); }
+
+  /* Structured answer fields */
+  .qa-field {
+    margin-bottom: 10px;
+  }
+  .qa-field-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+  }
+  .qa-field-value {
+    padding: 8px 10px;
+    background: #07091a;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .qa-field-value.signal { border-left: 3px solid var(--accent); }
+  .qa-field-value.evidence { border-left: 3px solid var(--yellow); }
+  .qa-field-value.cause { border-left: 3px solid var(--orange); }
+  .qa-field-value.action { border-left: 3px solid var(--green); }
+  .qa-field-value.outcome { border-left: 3px solid var(--productivity); }
+  .qa-field-value.metrics { border-left: 3px solid var(--accent-2); }
+  .qa-field-value.confidence { border-left: 3px solid var(--overall); }
+
+  /* Advice enrichment highlight */
+  .advice-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(255, 184, 108, 0.15);
+    color: var(--orange);
+    margin-left: 8px;
+  }
+
+  /* Final prose styling */
+  .prose-final {
+    padding: 14px;
+    background: linear-gradient(135deg, #07091a 0%, #0d1129 100%);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .prose-draft {
+    padding: 10px 12px;
+    background: #07091a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .final-section {
+    margin-top: 24px;
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .final-section h2 { margin: 0 0 16px; font-size: 17px; }
+  .final-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 1100px) { .final-grid { grid-template-columns: 1fr; } }
+  .final-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .final-card h3 { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .final-text {
+    padding: 12px;
+    background: #07091a;
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .final-card.health .final-text { border-left-color: var(--health); }
+  .final-card.productivity .final-text { border-left-color: var(--productivity); }
+  .final-card.overall .final-text { border-left-color: var(--overall); }
+
+  .empty-hint { color: var(--text-dim); text-align: center; padding: 24px; font-size: 13px; }
+
+  /* ── API Raw domain card ───────────────────────────────────── */
+  .api-fetch-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: auto;
+    flex: 1;
+    min-height: 0;
+  }
+  .api-fetch-card {
+    background: #0e1228;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .api-fetch-card > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 6px 8px;
+    align-items: center;
+  }
+  .api-fetch-card > summary::-webkit-details-marker { display: none; }
+  .api-fetch-card > summary:hover { background: #13183a; }
+  .api-fetch-card[open] > summary { border-bottom: 1px solid var(--border); background: #13183a; }
+
+  .api-fetch-method {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .api-fetch-method.GET    { background: rgba(80,250,123,0.15); color: var(--green); }
+  .api-fetch-method.POST   { background: rgba(124,156,255,0.15); color: var(--accent); }
+  .api-fetch-method.PUT    { background: rgba(241,250,140,0.15); color: var(--yellow); }
+  .api-fetch-method.DELETE { background: rgba(255,110,110,0.15); color: var(--red); }
+
+  .api-fetch-path {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .api-fetch-source {
+    font-size: 8px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #1a2042;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+  .api-fetch-count {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .api-fetch-count.has-data { background: rgba(80,250,123,0.15); color: var(--green); }
+  .api-fetch-count.no-data  { background: rgba(255,110,110,0.15); color: var(--red); }
+  .api-fetch-count.zero     { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+
+  .api-fetch-body { padding: 8px 12px; }
+  .api-fetch-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+  .api-fetch-meta .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #1a2042;
+    color: var(--text);
+  }
+  .api-fetch-note {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+  .api-fetch-response {
+    background: #07091a;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 10px;
+    line-height: 1.45;
+    max-height: 250px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .api-fetch-empty-response {
+    color: var(--text-dim);
+    font-size: 10px;
+    font-style: italic;
+    text-align: center;
+    padding: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <h1>🧠 Insight Pipeline <span class="badge">Health · 4 layers</span> <span class="badge mock">Mock + Live</span></h1>
+      <div class="sub">
+        Matches production <code>get_qa_single_insight</code>:
+        <code>Extract → Signals → Prompt (narrative + fixed overview) → LLM (title + insight)</code>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: var(--text-dim);">
+      Backend: <span id="backend-status" style="color: var(--yellow);">●</span>
+      <code id="backend-url">http://localhost:8001</code>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="mode-tabs">
+      <div class="mode-tab active" data-mode="live">👤 Live User ID</div>
+    </div>
+
+    <!-- Live User ID panel -->
+    <div class="mode-panel" data-panel="live">
+      <div class="controls-grid">
+        <div class="field">
+          <label>User ID</label>
+          <input id="user_id" placeholder="e.g. 64f5a2c1b3d4e5f6a7b8c9d0" />
+        </div>
+        <div class="field">
+          <label>Backend URL</label>
+          <input id="backend-url-input" value="http://localhost:8001" />
+        </div>
+        <div class="field">
+          <label>Timezone</label>
+          <select id="timezone">
+            <option value="Asia/Ho_Chi_Minh" selected>Asia/Ho_Chi_Minh</option>
+            <option value="UTC">UTC</option>
+            <option value="America/Los_Angeles">America/Los_Angeles</option>
+            <option value="America/New_York">America/New_York</option>
+            <option value="Europe/London">Europe/London</option>
+            <option value="Asia/Tokyo">Asia/Tokyo</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Language</label>
+          <select id="language">
+            <option value="vi-VN" selected>vi-VN</option>
+            <option value="en-US">en-US</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Provider</label>
+          <input id="provider_name" placeholder="google / outlook (optional)" value="google" />
+        </div>
+        <div class="field" style="grid-column: span 2;">
+          <label>CHATBOT_API_KEY (Bearer token)</label>
+          <input id="api_key" type="password" placeholder="insync_chatbot_sk_..." value="insync_chatbot_sk_live_2KWF1VkBYjlhXZZMQZYl9vai" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top: 10px;">
+        <button class="btn-secondary" id="fetch-raw-btn">📥 Fetch Raw Only</button>
+        <span style="font-size: 12px; color: var(--text-dim); margin-left: 12px;">
+          Fetch <code>raw_data</code> trong 1-2s (không chạy LLM) — để inspect trước khi Run. Run Pipeline cũng tự gọi bước này.
+        </span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" id="run-btn">▶ Run Full Pipeline</button>
+      <button class="btn-secondary" id="expand-btn">📂 Expand All Phases</button>
+      <button class="btn-secondary" id="collapse-btn">📁 Collapse All Phases</button>
+      <button class="btn-secondary" id="copy-raw-btn">📋 Copy Raw Data</button>
+      <span style="margin-left:auto; font-size:12px; color:var(--text-dim);">
+        Mode: <strong id="current-mode-label">Live User ID</strong>
+      </span>
+    </div>
+  </div>
+
+  <div class="status" id="status-banner"></div>
+
+  <div class="layout">
+    <!-- LEFT: raw_data viewer (editable, big) -->
+    <aside class="raw-panel">
+      <h3>📦 Raw Data <span id="raw-mode-label" style="font-size:11px; color: var(--text-dim); margin-left:8px;">(read-only)</span></h3>
+      <div id="raw-summary" class="raw-summary"></div>
+      <pre class="raw-pre" id="raw-pre">Run the pipeline (or Fetch Raw Data) to preview raw_data for this user.</pre>
+      <textarea class="raw-editor" id="raw-editor" spellcheck="false" wrap="off"></textarea>
+      <div class="raw-status" id="raw-status"></div>
+      <div class="raw-actions">
+        <button class="btn-secondary" id="edit-raw-btn" disabled>✏️ Edit</button>
+        <button class="btn-secondary" id="apply-raw-btn" style="display:none;">✅ Apply</button>
+        <button class="btn-secondary" id="cancel-edit-btn" style="display:none;">↩ Cancel</button>
+        <button class="btn-secondary" id="download-raw-btn">⬇ Download</button>
+      </div>
+    </aside>
+
+    <!-- RIGHT: pipeline output -->
+    <section class="pipeline-panel">
+      <div class="domains" id="domains-container"></div>
+
+      <div class="final-section" id="final-section" style="display:none;">
+        <h2>✨ Final Insights — All Domains</h2>
+        <div class="final-grid" id="final-grid"></div>
+      </div>
+    </section>
+  </div>
+
+</div>
+
+<script>
+// ───────────────────────────────────────────────────────────────────
+//  Domain / pipeline constants
+// ───────────────────────────────────────────────────────────────────
+const DOMAIN_LABELS = {
+  api_raw:     { name: 'API Raw',     color: 'accent' },
+  health:       { name: 'Health',       color: 'health' },
+  productivity: { name: 'Productivity', color: 'productivity' },
+  overall:      { name: 'Overall',      color: 'overall' },
+};
+
+// Mirrors production 4-layer insight pipeline in AdvancedInsightService:
+// Extract → Signals → Prompt (narrative + fixed overview) → LLM.
+const PHASE_DEFS = [
+  {
+    key: 's1_extract',
+    label: '1 · Extract',
+    type: 'rule',
+    impl: 'HealthDataExtractor',
+    desc: 'Collect + prepare + field_keep_map. balance · calendar/event · health/summaries (ENERGY/HR/SLEEP/STEPS drop id).',
+  },
+  {
+    key: 's2_signals',
+    label: '2 · Signals',
+    type: 'rule',
+    impl: 'HealthInsightProcessor',
+    desc: 'sleep · heart_rate · energy · steps · mood · health_score · context · period_aggregates',
+  },
+  {
+    key: 's3_prompt',
+    label: '3 · Prompt',
+    type: 'rule',
+    impl: 'narrative + fixed overview',
+    desc: 'Inline narrative + fixed h_group_overview / h_overview_infer (LLM picks the story).',
+  },
+  {
+    key: 's4_llm',
+    label: '4 · LLM',
+    type: 'llm',
+    impl: 'Sylo — title + insight 80–180w',
+    desc: 'Single Q&A call → title + insight prose.',
+  },
+];
+
+/**
+ * Mirrors insights.health.field_keep_maps.FIELD_KEEP_MAP
+ * (backend also returns payload.field_keep_map on s1_extract).
+ */
+const FIELD_KEEP_MAP = {
+  balance: [
+    { key: 'date' },
+    { key: 'timezone' },
+    { key: 'healthScore' },
+  ],
+  'calendar/event': [
+    { key: 'summary' },
+    { key: 'completed' },
+    { key: 'startTime' },
+    { key: 'endTime' },
+    { key: 'eventType' },
+  ],
+  'health/summaries': [
+    // ENERGY / HR / SLEEP / STEPS share these block fields (+ SLEEP.sleepScore)
+    { key: 'ENERGY.type' }, { key: 'ENERGY.dateRange' }, { key: 'ENERGY.daysWithData' },
+    { key: 'ENERGY.createdAt' }, { key: 'ENERGY.updatedAt' }, { key: 'ENERGY.summaryData' }, { key: 'ENERGY.data' },
+    { key: 'HR.type' }, { key: 'HR.dateRange' }, { key: 'HR.daysWithData' },
+    { key: 'HR.createdAt' }, { key: 'HR.updatedAt' }, { key: 'HR.summaryData' }, { key: 'HR.data' },
+    { key: 'SLEEP.type' }, { key: 'SLEEP.dateRange' }, { key: 'SLEEP.daysWithData' },
+    { key: 'SLEEP.createdAt' }, { key: 'SLEEP.updatedAt' }, { key: 'SLEEP.summaryData' }, { key: 'SLEEP.data' },
+    { key: 'SLEEP.sleepScore' },
+    { key: 'STEPS.type' }, { key: 'STEPS.dateRange' }, { key: 'STEPS.daysWithData' },
+    { key: 'STEPS.createdAt' }, { key: 'STEPS.updatedAt' }, { key: 'STEPS.summaryData' }, { key: 'STEPS.data' },
+  ],
+};
+
+/** api keep-map key → raw_data keys cleaned by field_keep_map */
+const KEEP_MAP_RAW_KEYS = {
+  balance: ['balance_score', 'balance_scores_7d'],
+  'calendar/event': ['calendar_events'],
+  'health/summaries': ['today_health_stats'],
+};
+
+function keepKeysFor(apiKey, keepMap) {
+  const entries = (keepMap && keepMap[apiKey]) || [];
+  return entries.map(e => e && e.key).filter(Boolean);
+}
+
+function keepHintForRawKey(rawKey, keepMap) {
+  const map = keepMap || FIELD_KEEP_MAP;
+  for (const [apiKey, rawKeys] of Object.entries(KEEP_MAP_RAW_KEYS)) {
+    if (!rawKeys.includes(rawKey)) continue;
+    const keys = keepKeysFor(apiKey, map);
+    if (!keys.length) return '';
+    // Compact nested METRIC.field keys: ENERGY|HR|… → type · dateRange · …
+    if (keys.some(k => k.includes('.'))) {
+      const metrics = [];
+      const fieldsByMetric = {};
+      keys.forEach(k => {
+        const [metric, field] = k.split('.', 2);
+        if (!metric || !field) return;
+        if (!fieldsByMetric[metric]) {
+          fieldsByMetric[metric] = [];
+          metrics.push(metric);
+        }
+        fieldsByMetric[metric].push(field);
+      });
+      const shared = fieldsByMetric[metrics[0]] || [];
+      const extras = metrics
+        .filter(m => (fieldsByMetric[m] || []).some(f => !shared.includes(f)))
+        .map(m => {
+          const only = (fieldsByMetric[m] || []).filter(f => !shared.includes(f));
+          return only.length ? `${m}+${only.join(',')}` : '';
+        })
+        .filter(Boolean);
+      return `keep ${metrics.join('|')}: ${shared.join(' · ')}${extras.length ? ` (${extras.join('; ')})` : ''}`;
+    }
+    return `keep: ${keys.join(' · ')}`;
+  }
+  return '';
+}
+
+/** What each raw_key holds after extract (demo legend). */
+const RAW_KEY_HINTS = {
+  user_profile: 'Onboarding profile (goals, locale, prefs…)',
+  today_health_stats: 'Health summaries · keep ENERGY|HR|SLEEP|STEPS: type · dateRange · daysWithData · createdAt · updatedAt · summaryData · data (+ SLEEP.sleepScore); drop id',
+  health_params: 'Flat derived params from 2-week range (steps_today, sleep_lastnight, HR, energy…)',
+  latest_mood: 'Latest mood log from /api/moods/latest',
+  calendar_events: 'Calendar events (today) · keep: summary · completed · startTime · endTime · eventType',
+  today_reminders: 'Reminders (health domain: today only)',
+  calendar_work_hours: 'Configured work-hour windows',
+  historical_snapshots: '~30d daily snapshots for week/month period aggregates',
+  balance_scores_7d: 'Balance scores past 7d · keep: date · timezone · healthScore',
+  balance_score: "Today's balance row · keep: date · timezone · healthScore",
+  productivity_summaries_7d: 'Productivity summaries past 7 days',
+  productivity_summary: "Today's slice from productivity_summaries_7d",
+};
+
+const API_SOURCE_META = {
+  collect: {
+    order: 1,
+    title: 'DataCollector · parallel topic GETs',
+    blurb: 'Domain topics (snapshots topic skipped — replaced by extended fetch below).',
+  },
+  health_extractor: {
+    order: 2,
+    title: 'HealthDataExtractor · extended history',
+    blurb: 'Replaces short collect snapshots with ~30d lookback.',
+  },
+  prepare_health: {
+    order: 3,
+    title: 'PrepareHealthData · health_params',
+    blurb: 'Separate network call: summaries by date range → flat health_params.',
+  },
+};
+
+// ───────────────────────────────────────────────────────────────────
+//  State
+// ───────────────────────────────────────────────────────────────────
+const domainState = {
+  api_raw:     { data: null },
+  health:      { data: null },
+  productivity: { data: null },
+  overall:     { data: null },
+};
+
+let currentRawData = null;
+let currentApiRawFetches = null; // Raw API fetches before field_keep_map filtering
+
+// ───────────────────────────────────────────────────────────────────
+//  API Raw panel renderer
+// ───────────────────────────────────────────────────────────────────
+/**
+ * Render the _extract_api_fetches array in the API Raw domain card.
+ * Each entry shows: method · path · label · source · present flag · item count.
+ * The response JSON is shown in an expandable <details> block.
+ */
+function setApiRawPanelBody(fetches) {
+  const phasesEl = document.getElementById('api-raw-phases');
+  if (!phasesEl) return;
+
+  if (!fetches || !Array.isArray(fetches) || fetches.length === 0) {
+    phasesEl.innerHTML = `
+      <div class="api-raw-card-empty" style="color:var(--text-dim); font-size:12px; text-align:center; padding:24px;">
+        🔌 Run the pipeline to see raw upstream API responses here.<br>
+        <span style="font-size:11px;">Each call shows method · path · response before field_keep_map filtering.</span>
+      </div>`;
+    setDomainStatus('api_raw', '', 'Idle');
+    return;
+  }
+
+  setDomainStatus('api_raw', 'running', `⏳ ${fetches.length} calls…`);
+
+  const cards = fetches.map((fetch) => {
+    const method = fetch.method || 'GET';
+    const path = fetch.path || '';
+    const label = fetch.label || fetch.topic || fetch.raw_key || '?';
+    const source = fetch.source || 'collect';
+    const present = !!fetch.present;
+    const count = fetch.count ?? 0;
+    const note = fetch.note || '';
+    const response = fetch.response;
+
+    // Count badge
+    let countClass = 'zero';
+    let countLabel = '0 items';
+    if (count > 0) {
+      countClass = 'has-data';
+      countLabel = count === 1 ? '1 item' : `${count} items`;
+    } else if (response !== null && response !== undefined) {
+      countClass = 'no-data';
+      countLabel = 'null/empty';
+    }
+
+    // Source badge
+    const sourceLabel = source === 'collect'
+      ? '📥 collect'
+      : source === 'extractor'
+      ? '⚙️ extractor'
+      : source === 'prepare_health'
+      ? '💊 prepare'
+      : source.toUpperCase();
+
+    // Response body
+    let responseHtml = '';
+    if (response === null || response === undefined) {
+      responseHtml = '<div class="api-fetch-empty-response">No response data</div>';
+    } else {
+      let responseText;
+      try {
+        responseText = JSON.stringify(response, null, 2);
+      } catch {
+        responseText = String(response);
+      }
+      const sizeBytes = new Blob([responseText]).size;
+      responseHtml = `
+        <details class="sec-json-toggle" style="margin-top:6px;">
+          <summary style="cursor:pointer; font-size:11px; color:var(--accent);">
+            📄 Response JSON · ${prettyBytes(sizeBytes)}
+          </summary>
+          <pre class="api-fetch-response">${escapeHtml(responseText)}</pre>
+        </details>`;
+    }
+
+    return `
+      <details class="api-fetch-card" style="margin-bottom:6px;">
+        <summary>
+          <span class="api-fetch-method ${method}">${escapeHtml(method)}</span>
+          <span class="api-fetch-path" title="${escapeHtml(path)}">${escapeHtml(label)}</span>
+          <span class="api-fetch-source">${escapeHtml(sourceLabel)}</span>
+          <span class="api-fetch-count ${countClass}">${escapeHtml(countLabel)}</span>
+        </summary>
+        <div class="api-fetch-body">
+          ${note ? `<div class="api-fetch-note">${escapeHtml(note)}</div>` : ''}
+          <div class="api-fetch-meta">
+            <span class="badge">path: <code style="color:var(--accent); font-size:10px;">${escapeHtml(path)}</code></span>
+            ${present
+              ? `<span class="badge" style="background:rgba(80,250,123,0.12); color:var(--green);">✓ present in raw_data</span>`
+              : `<span class="badge" style="background:rgba(255,110,110,0.12); color:var(--red);">✗ not in raw_data</span>`
+            }
+          </div>
+          ${responseHtml}
+        </div>
+      </details>`;
+  });
+
+  // Summary header
+  const presentCalls = fetches.filter(f => f.present).length;
+  const totalSize = fetches.reduce((acc, f) => {
+    if (f.response != null) {
+      try { return acc + new Blob([JSON.stringify(f.response)]).size; } catch { /* ignore */ }
+    }
+    return acc;
+  }, 0);
+
+  phasesEl.innerHTML = `
+    <div style="padding:8px 8px 4px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <span class="badge" style="background:rgba(124,156,255,0.15); color:var(--accent);">
+        🔌 <b>${fetches.length}</b> API calls
+      </span>
+      <span class="badge" style="background:rgba(80,250,123,0.12); color:var(--green);">
+        ✓ <b>${presentCalls}</b> present
+      </span>
+      <span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-dim);">
+        💾 ${prettyBytes(totalSize)} raw
+      </span>
+    </div>
+    <div style="padding:4px 8px 8px; display:flex; gap:6px; flex-wrap:wrap;">
+      <button class="btn-secondary" id="fetch-api-raw-btn-card" style="font-size:11px; padding:4px 10px;">🔄 Refresh</button>
+      <button class="btn-secondary" id="download-api-raw-btn-card" style="font-size:11px; padding:4px 10px;">⬇ Download JSON</button>
+    </div>
+    <div class="api-fetch-list" style="padding:0 4px 8px; gap:4px;">
+      ${cards.join('')}
+    </div>`;
+
+  // Wire up card-level buttons
+  const fetchBtn = document.getElementById('fetch-api-raw-btn-card');
+  const downloadBtn = document.getElementById('download-api-raw-btn-card');
+  if (fetchBtn) fetchBtn.addEventListener('click', fetchApiRawData);
+  if (downloadBtn) downloadBtn.addEventListener('click', () => {
+    if (!currentApiRawFetches) return;
+    const blob = new Blob([JSON.stringify(currentApiRawFetches, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'api_raw_fetches.json';
+    a.click();
+  });
+
+  setDomainStatus('api_raw', 'success', `✓ ${fetches.length} calls`);
+}
+
+// Alias for backward compat (called from fetchLiveRawData / runPipeline)
+function renderApiRawPanel(fetches) {
+  setApiRawPanelBody(fetches);
+}
+
+// ───────────────────────────────────────────────────────────────────
+//  Scenario loading
+// ───────────────────────────────────────────────────────────────────
+//  Helpers
+// ───────────────────────────────────────────────────────────────────
+function prettyBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+// ───────────────────────────────────────────────────────────────────
+//  Raw data viewer
+// ───────────────────────────────────────────────────────────────────
+function renderRawData(raw) {
+  const pre = document.getElementById('raw-pre');
+  const editor = document.getElementById('raw-editor');
+  const statusEl = document.getElementById('raw-status');
+  const modeLabel = document.getElementById('raw-mode-label');
+  const editBtn = document.getElementById('edit-raw-btn');
+  if (!raw) {
+    pre.textContent = 'Pick a scenario to preview the raw_data dict that will be sent.';
+    editor.value = '';
+    statusEl.textContent = '';
+    modeLabel.textContent = '(read-only)';
+    editBtn.disabled = true;
+    renderRawSummary(null);
+    return;
+  }
+  // NEW: structured summary view (sections, counts, dates, metrics)
+  renderRawSummary(raw);
+  // OLD: full JSON dump (kept as fallback when user toggles "View full JSON")
+  pre.innerHTML = syntaxHighlight(raw);
+  editor.value = JSON.stringify(raw, null, 2);
+  statusEl.textContent = '';
+  statusEl.className = 'raw-status';
+  modeLabel.textContent = '(read-only)';
+  // Default to summary mode; user clicks "🗂 View full JSON" to see the dump
+  document.body.classList.add('raw-summary-mode');
+  editor.classList.remove('show');
+  editBtn.style.display = '';
+  editBtn.disabled = false;
+  document.getElementById('apply-raw-btn').style.display = 'none';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+}
+
+// ── Render structured summary of raw_data ────────────────────────────────
+// Pulls out: top-level keys, item counts, date ranges, key numeric
+// highlights per section. User can expand any section to see its JSON.
+// Reads `_field_tiers` (added by extractor) to badge each section as
+// primary / raw_api / metadata, and reads `_dropped_redundant` to show
+// what was filtered out at extract time.
+const TIER_BADGES = {
+  primary:   { icon: '📐', label: 'primary',   title: 'Canonical/derived — processor reads this first' },
+  raw_api:   { icon: '🔌', label: 'raw_api',   title: 'Original upstream response kept for fallback only' },
+  metadata:  { icon: '🏷', label: 'metadata',  title: 'Runtime context (user_id, tz, request envelope)' },
+  redundant: { icon: '🗑', label: 'redundant', title: 'Should be dropped after projection' },
+  unknown:   { icon: '?',  label: 'unknown',   title: 'No tier annotation — extract may have skipped classify' },
+};
+// ── Insight pipeline whitelist ────────────────────────────────────────
+// Only fields read by health_processor / productivity_signal / data_processor / LLM.
+// Debug internals + raw_api fallback sections get hidden in "Other" block.
+const HEALTH_DATA_FIELDS = [
+  'today_health_stats', 'health_data', 'historical_snapshots',
+  'balance_score', 'balance_scores_30d', 'health_abnormal_flags',
+];
+const CALENDAR_FIELDS = ['calendar_events', 'calendar_events_week', 'calendar_metrics', 'calendar_work_hours'];
+const REMINDER_MOOD_FIELDS = ['today_reminders', 'latest_mood', 'moods_7d'];
+const PRODUCTIVITY_FIELDS = ['productivity_summary', 'productivity_summaries_7d'];
+const PROFILE_FIELDS = ['user_profile', 'goals', 'goal_contributions'];
+const ENVELOPE_FIELDS = [
+  'timezone', 'current_time', 'user_id', 'collect_domain', 'collect_topics',
+  'health_params', 'time_data',
+];
+const FINANCE_FIELDS = new Set(['finance_summary', 'finance_goals', 'finance_bills', 'finance_logs', 'finance_budgets']);
+
+// Build tier-aware lookup. Sections read by processor → "primary".
+// Sections only used at envelope/runtime → "metadata".
+// Finance fields outside overall/finance domain → "redundant".
+const PRIMARY_FIELDS = new Set([
+  ...HEALTH_DATA_FIELDS, ...CALENDAR_FIELDS, ...REMINDER_MOOD_FIELDS,
+  ...PRODUCTIVITY_FIELDS, ...PROFILE_FIELDS,
+]);
+const METADATA_FIELDS = new Set(ENVELOPE_FIELDS);
+
+// Debug internals — never show as sections (tier annotation from backend).
+const DEBUG_KEYS = new Set(['_field_tiers', '_dropped_redundant', '_extract_api_fetches']);
+
+function resolveInsightKey(key, domain) {
+  if (DEBUG_KEYS.has(key)) return 'debug';
+  if (METADATA_FIELDS.has(key)) return 'metadata';
+  if (FINANCE_FIELDS.has(key)) {
+    // Finance only flows into insight when domain is overall/finance.
+    return (domain === 'overall' || domain === 'finance') ? 'primary' : 'redundant';
+  }
+  if (PRIMARY_FIELDS.has(key)) return 'primary';
+  return 'unknown';
+}
+
+function renderRawSummary(raw) {
+  const summaryEl = document.getElementById('raw-summary');
+  if (!summaryEl) return;
+  if (!raw || typeof raw !== 'object') {
+    summaryEl.innerHTML = '<div class="raw-summary-empty">No raw_data loaded. Click <b>📥 Fetch Raw Only</b> or <b>▶ Run Full Pipeline</b>.</div>';
+    document.body.classList.remove('raw-summary-mode');
+    return;
+  }
+
+  const domain = (raw.collect_domain || '').toString().toLowerCase().trim();
+
+  // Resolve per-key tier up-front (no longer relies on backend _field_tiers).
+  const tierByKey = {};
+  Object.keys(raw).forEach(k => { tierByKey[k] = resolveInsightKey(k, domain); });
+
+  // Split: pipeline keys → visible cards; everything else → "Other" block.
+  const pipelineEntries = [];
+  const otherEntries = [];
+  Object.entries(raw).forEach(([k, v]) => {
+    const tier = tierByKey[k];
+    if (tier === 'debug') return; // strip debug internals entirely
+    if (tier === 'redundant' || tier === 'unknown') otherEntries.push([k, v, tier]);
+    else pipelineEntries.push([k, v, tier]);
+  });
+
+  // Stable section order: primary → metadata.
+  const order = { primary: 0, metadata: 1 };
+  pipelineEntries.sort((a, b) => (order[a[2]] ?? 9) - (order[b[2]] ?? 9));
+
+  const sections = pipelineEntries.map(([k, v, tier]) => analyzeSection(k, v, tier));
+  const totalSize = new Blob([JSON.stringify(raw)]).size;
+  const allDates = sections.flatMap(s => s.allDates || []);
+  const overallRange = allDates.length > 1 ? formatRange(allDates[0], allDates[allDates.length - 1]) : null;
+
+  // Count by tier for header chip
+  const tierCounts = sections.reduce((acc, s) => {
+    acc[s.tier] = (acc[s.tier] || 0) + 1;
+    return acc;
+  }, {});
+
+  const headerHtml = `
+    <div class="raw-summary-header">
+      <span class="hs-chip">📦 <b>${sections.length}</b> pipeline fields</span>
+      ${tierCounts.primary ? `<span class="hs-chip tier-primary" title="Read by insight processor + LLM">📐 <b>${tierCounts.primary}</b> primary</span>` : ''}
+      ${tierCounts.metadata ? `<span class="hs-chip tier-metadata" title="Runtime envelope (tz/user/domain)">🏷 <b>${tierCounts.metadata}</b> metadata</span>` : ''}
+      <span class="hs-chip">💾 <b>${prettyBytes(totalSize)}</b></span>
+      ${overallRange ? `<span class="hs-chip">📅 <b>${escapeHtml(overallRange)}</b></span>` : ''}
+      <span class="raw-summary-toggle" id="raw-toggle-view">🗂 View full JSON →</span>
+    </div>
+  `;
+  // "Other" block: fields not read by insight pipeline (filtered out by domain
+  // or left from upstream collectors). Default collapsed.
+  const otherHtml = otherEntries.length > 0 ? `
+    <details class="raw-dropped-block">
+      <summary>🚫 <b>${otherEntries.length}</b> key(s) not read by insight pipeline (hidden)</summary>
+      <div class="raw-dropped-list">
+        ${otherEntries.map(([k, _v, tier]) => {
+          const reason = tier === 'redundant'
+            ? 'Out of domain (finance fields outside overall/finance domain)'
+            : 'Not in insight processor whitelist';
+          return `<span class="dropped-chip" title="${escapeHtml(reason)}">${escapeHtml(k)}</span>`;
+        }).join(' ')}
+      </div>
+    </details>
+  ` : '';
+  const cardsHtml = `
+    <div class="raw-summary-grid">
+      ${sections.map(renderSectionCard).join('')}
+    </div>
+  `;
+
+  summaryEl.innerHTML = headerHtml + otherHtml + cardsHtml;
+  summaryEl.style.display = 'flex';
+
+  // Toggle button: switch between summary view and raw JSON dump
+  const toggleBtn = document.getElementById('raw-toggle-view');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      if (document.body.classList.contains('raw-summary-mode')) {
+        document.body.classList.remove('raw-summary-mode');
+        toggleBtn.textContent = '← Back to summary';
+      } else {
+        document.body.classList.add('raw-summary-mode');
+        toggleBtn.textContent = '🗂 View full JSON →';
+      }
+    });
+  }
+}
+
+function analyzeSection(key, value, tier) {
+  const tiersMap = (tier && typeof tier === 'object' && !Array.isArray(tier)) ? tier : null;
+  const resolvedTier = tiersMap ? (tiersMap[key] || 'unknown') : (tier || 'unknown');
+  const info = { key, value, type: 'unknown', count: 0, dateRange: null, allDates: [], highlights: [], summaryData: null, subSections: null, tier: resolvedTier };
+
+  if (value === null || value === undefined) {
+    info.type = 'null';
+    return info;
+  }
+
+  if (Array.isArray(value)) {
+    info.type = 'array';
+    info.count = value.length;
+    const dates = collectDates(value);
+    if (dates.length > 0) {
+      info.allDates = dates;
+      info.dateRange = formatRange(dates[0], dates[dates.length - 1]);
+    }
+    info.highlights = extractNumericHighlights(value);
+    return info;
+  }
+
+  if (typeof value === 'object') {
+    info.type = 'object';
+
+    // Pattern 1: single source shape `{ summaryData: {...}, data: [...] }`
+    const hasSummaryData = value.summaryData && typeof value.summaryData === 'object';
+    const hasDataArray = Array.isArray(value.data);
+    if (hasSummaryData || hasDataArray) {
+      if (hasSummaryData) {
+        info.summaryData = Object.entries(value.summaryData).map(([k, v]) => ({
+          key: k, value: v, kind: 'summary'
+        }));
+      }
+      if (hasDataArray) {
+        info.count = value.data.length;
+        const dates = collectDates(value.data);
+        if (dates.length > 0) {
+          info.allDates = dates;
+          info.dateRange = formatRange(dates[0], dates[dates.length - 1]);
+        }
+        info.highlights = extractNumericHighlights(value.data);
+      }
+      if (!info.count) info.count = Object.keys(value).length;
+      return info;
+    }
+
+    // Pattern 2: wrapper quanh nhiều sub-source (vd `health_summaries_latest`
+    // = { ENERGY: {...}, SLEEP: {...}, ... }). Recurse 1 cấp.
+    const subKeys = Object.keys(value).filter(k => {
+      const v = value[k];
+      return v && typeof v === 'object' && (
+        (v.summaryData && typeof v.summaryData === 'object') || Array.isArray(v.data)
+      );
+    });
+    if (subKeys.length > 0) {
+      info.type = 'group';
+      info.count = subKeys.length;
+      info.subSections = subKeys.map(sk => {
+        // Prefer the tier resolved by the parent map; fall back to 'unknown'.
+        const childTier = tiersMap ? (tiersMap[sk] || 'unknown') : 'unknown';
+        return {
+          key: sk,
+          section: analyzeSection(sk, value[sk], childTier)
+        };
+      });
+      const allDates = info.subSections.flatMap(s => s.section.allDates || []);
+      if (allDates.length > 0) {
+        info.dateRange = formatRange(allDates[0], allDates[allDates.length - 1]);
+        info.allDates = allDates;
+      }
+      return info;
+    }
+
+    // Pattern 3: plain object (vd profile = { age, gender, ... })
+    info.count = Object.keys(value).length;
+    info.highlights = Object.entries(value)
+      .filter(([_, v]) => ['string', 'number', 'boolean'].includes(typeof v))
+      .slice(0, 8)
+      .map(([k, v]) => ({ key: k, value: v, kind: 'scalar' }));
+    return info;
+  }
+
+  info.type = typeof value;
+  info.count = 1;
+  info.highlights = [{ key: 'value', value: value, kind: 'scalar' }];
+  return info;
+}
+
+function collectDates(arr) {
+  return arr
+    .map(item => {
+      if (!item || typeof item !== 'object') return null;
+      return item.date || item.timestamp || item.start_time || item.startDate || null;
+    })
+    .filter(d => d && !isNaN(Date.parse(d)))
+    .map(d => new Date(d).toISOString().slice(0, 10))
+    .sort();
+}
+
+function extractNumericHighlights(arr) {
+  if (!arr.length || typeof arr[0] !== 'object') return [];
+  const skipKeys = /^(id|user_?id|provider_?id|source|external|created|updated)$/i;
+  const numericKeys = Object.keys(arr[0])
+    .filter(k => !skipKeys.test(k) && typeof arr[0][k] === 'number')
+    .slice(0, 3);
+  const out = [];
+  numericKeys.forEach(k => {
+    const nums = arr.map(i => i[k]).filter(n => typeof n === 'number' && !isNaN(n) && isFinite(n));
+    if (nums.length > 0) {
+      const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+      out.push({
+        key: k,
+        avg: roundSmart(avg),
+        min: roundSmart(Math.min(...nums)),
+        max: roundSmart(Math.max(...nums)),
+        kind: 'numeric'
+      });
+    }
+  });
+  return out;
+}
+
+function formatRange(start, end) {
+  if (!start) return null;
+  if (!end || start === end) return start;
+  return `${start} → ${end}`;
+}
+
+function roundSmart(n) {
+  if (Math.abs(n) >= 100) return Math.round(n);
+  if (Math.abs(n) >= 10) return Math.round(n * 10) / 10;
+  return Math.round(n * 100) / 100;
+}
+
+const SECTION_ICONS = {
+  sleep: '🌙', activity: '🏃', steps: '👟', heart_rate: '❤️', energy: '�',
+  weight: '⚖️', mood: '😊', food: '🍽️', water: '💧', mindfulness: '🧘',
+  profile: '👤', user_profile: '👤', events: '📌', goals: '🎯',
+  health_summaries_latest: '📊', summaries: '📊', day_profile: '📅',
+};
+const TYPE_ICONS = { array: '📋', object: '🗂', string: '🔤', number: '🔢', boolean: '◐', null: '�', unknown: '?' };
+
+function renderSectionCard(section) {
+  const icon = SECTION_ICONS[section.key.toLowerCase()] || '📦';
+  const typeIcon = TYPE_ICONS[section.type] || '?';
+
+  const meta = [];
+  if (section.type === 'array' && section.count) meta.push(`<span class="badge">${section.count} entries</span>`);
+  if (section.type === 'object' && section.count && !section.summaryData && !section.subSections) meta.push(`<span class="badge">${section.count} keys</span>`);
+  if (section.type === 'group' && section.count) meta.push(`<span class="badge">${section.count} sub-sources</span>`);
+  if (section.summaryData) meta.push(`<span class="badge">${section.summaryData.length} summary metrics</span>`);
+  if (section.dateRange) meta.push(`<span class="badge">📅 ${escapeHtml(section.dateRange)}</span>`);
+
+  const bodyParts = [];
+
+  // ── Group case (vd health_summaries_latest = { ENERGY, SLEEP, ... }) ──
+  if (section.subSections && section.subSections.length > 0) {
+    bodyParts.push(`<div class="hl-section-title">📊 Sub-sources breakdown</div>`);
+    section.subSections.forEach(sub => {
+      const subSec = sub.section;
+      const subIcon = SECTION_ICONS[sub.key.toLowerCase()] || '•';
+      const subMeta = [];
+      if (subSec.count) subMeta.push(`${subSec.count} rows`);
+      if (subSec.dateRange) subMeta.push(`📅 ${escapeHtml(subSec.dateRange)}`);
+      bodyParts.push(`<div class="hl-row group-header">
+        <span class="hl-key"><b>${subIcon} ${escapeHtml(sub.key)}</b></span>
+        <span class="hl-val">${subMeta.join(' · ') || 'no data'}</span>
+      </div>`);
+      if (subSec.summaryData && subSec.summaryData.length > 0) {
+        subSec.summaryData.forEach(h => {
+          bodyParts.push(`<div class="hl-row"><span class="hl-key">　└ ${escapeHtml(h.key)}</span><span class="hl-val">${escapeHtml(formatScalar(h.value))}</span></div>`);
+        });
+      }
+      if (subSec.highlights && subSec.highlights.length > 0) {
+        subSec.highlights.slice(0, 3).forEach(h => {
+          if (h.kind === 'scalar') {
+            bodyParts.push(`<div class="hl-row"><span class="hl-key">　└ ${escapeHtml(h.key)}</span><span class="hl-val">${escapeHtml(formatScalar(h.value))}</span></div>`);
+          } else {
+            bodyParts.push(`<div class="hl-row"><span class="hl-key">　└ ${escapeHtml(h.key)}</span><span class="hl-val"><em>avg</em>${h.avg} <em>[min..max]</em>${h.min}..${h.max}</span></div>`);
+          }
+        });
+      }
+    });
+  }
+
+  // ── Single source summaryData ──────────────────────────────────────
+  if (section.summaryData && section.summaryData.length > 0 && !section.subSections) {
+    bodyParts.push(`<div class="hl-section-title">📐 summaryData</div>`);
+    bodyParts.push(section.summaryData.map(h =>
+      `<div class="hl-row"><span class="hl-key">${escapeHtml(h.key)}</span><span class="hl-val">${escapeHtml(formatScalar(h.value))}</span></div>`
+    ).join(''));
+  }
+
+  // ── Numeric highlights (array or single-source data) ───────────────
+  if (section.highlights && section.highlights.length > 0 && !section.subSections) {
+    const hasNumeric = section.highlights.some(h => h.kind === 'numeric');
+    const title = hasNumeric ? '📈 numeric highlights' : '📋 fields';
+    bodyParts.push(`<div class="hl-section-title">${title}</div>`);
+    bodyParts.push(section.highlights.map(h => {
+      if (h.kind === 'scalar') {
+        return `<div class="hl-row"><span class="hl-key">${escapeHtml(h.key)}</span><span class="hl-val">${escapeHtml(formatScalar(h.value))}</span></div>`;
+      }
+      return `<div class="hl-row">
+        <span class="hl-key">${escapeHtml(h.key)}</span>
+        <span class="hl-val"><em>avg</em>${h.avg} <em>[min..max]</em>${h.min}..${h.max}</span>
+      </div>`;
+    }).join(''));
+  }
+  // Tier badge: primary / raw_api / metadata
+  const tierInfo = TIER_BADGES[section.tier] || TIER_BADGES['unknown'];
+  const tierBadgeHtml = `<span class="sec-tier-badge tier-${section.tier}" title="${tierInfo.title}">${tierInfo.icon} ${tierInfo.label}</span>`;
+
+  if (!bodyParts.length) {
+    bodyParts.push('<div class="hl-empty">No auto-extracted metrics. Expand to inspect raw JSON.</div>');
+  }
+  bodyParts.push(`
+    <details class="sec-json-toggle">
+      <summary>🗂 View raw JSON for "${escapeHtml(section.key)}"</summary>
+      <pre class="sec-json">${escapeHtml(JSON.stringify(section.value, null, 2))}</pre>
+    </details>
+  `);
+
+  return `
+    <details class="raw-section-card">
+      <summary>
+        <span class="sec-icon">${icon}</span>
+        <span class="sec-name">${escapeHtml(section.key)}</span>
+        <span class="sec-type">${typeIcon} ${section.type}</span>
+        <span class="sec-tier">${tierBadgeHtml}</span>
+        <span class="sec-meta">${meta.join(' ') || '<span class="badge">empty</span>'}</span>
+      </summary>
+      <div class="sec-body">${bodyParts.join('')}</div>
+    </details>
+  `;
+}
+
+function formatScalar(v) {
+  if (v === null || v === undefined) return '�';
+  if (typeof v === 'number') return roundSmart(v).toString();
+  if (typeof v === 'string') {
+    if (v.length > 80) return v.slice(0, 77) + '…';
+    return v;
+  }
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  return JSON.stringify(v);
+}
+
+function enterEditMode() {
+  const pre = document.getElementById('raw-pre');
+  const editor = document.getElementById('raw-editor');
+  const statusEl = document.getElementById('raw-status');
+  const modeLabel = document.getElementById('raw-mode-label');
+  const summaryEl = document.getElementById('raw-summary');
+  if (!currentRawData) {
+    setStatus('⚠️ Load a scenario or paste raw_data first.', 'error');
+    return;
+  }
+  console.log('[DEBUG] Entering edit mode, JSON stringified length:', JSON.stringify(currentRawData, null, 2).length);
+  // Switch off summary view so the editor has the full panel space.
+  document.body.classList.remove('raw-summary-mode');
+  if (summaryEl) summaryEl.style.display = 'none';
+  pre.style.display = 'none';
+  editor.value = JSON.stringify(currentRawData, null, 2);
+  editor.classList.add('show');
+  statusEl.textContent = '';
+  statusEl.className = 'raw-status';
+  modeLabel.textContent = '(editing — JSON)';
+  document.getElementById('edit-raw-btn').style.display = 'none';
+  document.getElementById('apply-raw-btn').style.display = '';
+  document.getElementById('cancel-edit-btn').style.display = '';
+  setTimeout(() => editor.focus(), 50);
+}
+
+function applyEditedRaw() {
+  const editor = document.getElementById('raw-editor');
+  const statusEl = document.getElementById('raw-status');
+  const text = editor.value;
+  try {
+    const parsed = JSON.parse(text);
+    currentRawData = parsed;
+    // Re-render summary view with edited data
+    renderRawSummary(parsed);
+    document.body.classList.add('raw-summary-mode');
+    const pre = document.getElementById('raw-pre');
+    pre.innerHTML = syntaxHighlight(parsed);
+    // Switch back to read-only
+    pre.style.display = 'none';
+    editor.classList.remove('show');
+    const editBtn = document.getElementById('edit-raw-btn');
+    editBtn.style.display = '';
+    editBtn.disabled = false;
+    document.getElementById('apply-raw-btn').style.display = 'none';
+    document.getElementById('cancel-edit-btn').style.display = 'none';
+    document.getElementById('raw-mode-label').textContent = '(read-only — edited)';
+    statusEl.textContent = `✅ Valid JSON — ${Object.keys(parsed).length} top-level keys, ${text.length.toLocaleString()} chars`;
+    statusEl.className = 'raw-status ok';
+    setStatus('✅ Raw data edited. Click Run Pipeline to use the new version.', 'success');
+  } catch (e) {
+    statusEl.textContent = '❌ Invalid JSON: ' + e.message;
+    statusEl.className = 'raw-status err';
+    editor.classList.add('invalid');
+    setTimeout(() => editor.classList.remove('invalid'), 1500);
+  }
+}
+
+function cancelEdit() {
+  const pre = document.getElementById('raw-pre');
+  const editor = document.getElementById('raw-editor');
+  const statusEl = document.getElementById('raw-status');
+  const summaryEl = document.getElementById('raw-summary');
+  document.body.classList.add('raw-summary-mode');
+  if (summaryEl) summaryEl.style.display = '';
+  pre.style.display = 'none';
+  editor.classList.remove('show');
+  const editBtn = document.getElementById('edit-raw-btn');
+  editBtn.style.display = '';
+  editBtn.disabled = false;
+  document.getElementById('apply-raw-btn').style.display = 'none';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+  document.getElementById('raw-mode-label').textContent = '(read-only)';
+  statusEl.textContent = '';
+  statusEl.className = 'raw-status';
+  editor.value = currentRawData ? JSON.stringify(currentRawData, null, 2) : '';
+}
+
+// ───────────────────────────────────────────────────────────────────
+//  Helpers
+// ───────────────────────────────────────────────────────────────────
+function syntaxHighlight(jsonOrString) {
+  const text = typeof jsonOrString === 'string'
+    ? jsonOrString
+    : JSON.stringify(jsonOrString, null, 2);
+  return text.replace(
+    /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    m => {
+      let cls = 'num';
+      if (/^"/.test(m)) cls = /:$/.test(m) ? 'key' : 'str';
+      else if (/true|false/.test(m)) cls = 'bool';
+      else if (/null/.test(m)) cls = 'null';
+      return `<span class="${cls}">${escapeHtml(m)}</span>`;
+    }
+  );
+}
+
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Build a one-line summary for a health_signals.{focus} block.
+// Focus-aware: pick the 2-3 most important scalar metrics per domain.
+function pickTopMetrics(v, focusKey) {
+  if (!v || typeof v !== 'object') return '';
+  const summary = v.summary || {};
+  const parts = [];
+  switch (focusKey) {
+    case 'sleep':
+      if (summary.avg_duration_h != null) parts.push(`avg=${summary.avg_duration_h}h`);
+      if (summary.avg_efficiency != null) parts.push(`eff=${summary.avg_efficiency}`);
+      if (summary.avg_sleep_score != null) parts.push(`score=${summary.avg_sleep_score}`);
+      if (summary.measured_days != null) parts.push(`${summary.measured_days}d`);
+      break;
+    case 'heart_rate':
+      if (summary.avg_resting_heart_rate != null) parts.push(`rhr=${summary.avg_resting_heart_rate}`);
+      if (summary.today_hrv != null) parts.push(`hrv=${summary.today_hrv}`);
+      if (summary.today_latest != null) parts.push(`now=${summary.today_latest}`);
+      break;
+    case 'energy':
+      if (summary.avg_energy_burn != null) parts.push(`avg=${summary.avg_energy_burn}`);
+      if (summary.today_active != null) parts.push(`today=${summary.today_active}`);
+      if (summary.week_avg != null) parts.push(`wk=${summary.week_avg}`);
+      break;
+    case 'steps':
+      if (summary.avg_steps != null) parts.push(`avg=${summary.avg_steps}`);
+      if (summary.today_steps != null) parts.push(`today=${summary.today_steps}`);
+      if (summary.daily_target != null) parts.push(`/goal=${summary.daily_target}`);
+      break;
+    case 'mood':
+      if (summary.has_mood != null) parts.push(summary.has_mood ? 'logged' : 'no_mood');
+      if (summary.entries_last_7_days != null) parts.push(`7d=${summary.entries_last_7_days}`);
+      break;
+    case 'health_score':
+      if (summary.current_score != null) parts.push(`current=${summary.current_score}`);
+      if (summary.previous_score != null) parts.push(`prev=${summary.previous_score}`);
+      if (summary.delta != null) parts.push(`Δ=${summary.delta}`);
+      break;
+    case 'period_aggregates':
+      // Each metric has its own today/week_avg/baseline_avg
+      const aggKeys = Object.keys(v).filter(k => v[k] && typeof v[k] === 'object').slice(0, 4);
+      return aggKeys.map(k => `${k}: today=${v[k].today} Δ=${v[k].delta_vs_baseline}`).join(' · ');
+    case 'activity':
+      if (v.steps_today != null) parts.push(`steps=${v.steps_today}`);
+      if (v.level != null) parts.push(`level=${v.level}`);
+      break;
+    case 'cardio_stress':
+      if (v.resting_heart_rate != null) parts.push(`rhr=${v.resting_heart_rate}`);
+      if (v.hrv_score != null) parts.push(`hrv=${v.hrv_score}`);
+      if (v.stress_high != null) parts.push(`stress=${v.stress_high ? 'high' : 'low'}`);
+      break;
+    default:
+      return '';
+  }
+  return parts.join(' · ');
+}
+
+function setStatus(text, kind) {
+  const el = document.getElementById('status-banner');
+  el.textContent = text;
+  el.className = 'status show ' + (kind || 'info');
+}
+
+function setDomainStatus(domain, kind, text) {
+  const card = document.querySelector(`.domain-card[data-domain="${domain}"]`);
+  if (!card) return;
+  const el = card.querySelector('[data-status]');
+  el.className = 'domain-status ' + kind;
+  el.textContent = text;
+}
+
+function formatSeconds(sec) {
+  if (sec == null || Number.isNaN(Number(sec))) return '—';
+  const n = Number(sec);
+  if (n < 0.001) return '<1ms';
+  if (n < 1) return `${Math.round(n * 1000)}ms`;
+  return `${n.toFixed(2)}s`;
+}
+
+function setPhaseTime(domain, phaseKey, seconds) {
+  const card = document.querySelector(`.domain-card[data-domain="${domain}"]`);
+  if (!card) return;
+  const el = card.querySelector(`[data-phase="${phaseKey}"] [data-phase-time]`);
+  if (!el) return;
+  if (seconds == null) {
+    el.textContent = '—';
+    el.className = 'phase-time empty';
+    el.removeAttribute('title');
+    return;
+  }
+  const n = Number(seconds);
+  el.textContent = formatSeconds(n);
+  el.className = 'phase-time' + (n >= 2 ? ' slow' : n < 0.05 ? ' fast' : '');
+  el.title = `${n.toFixed(4)}s`;
+}
+
+function applyDomainTimings(domain, timings) {
+  PHASE_DEFS.forEach(p => setPhaseTime(domain, p.key, null));
+  if (!timings || typeof timings !== 'object') return;
+  const alias = {
+    s2_signals: ['s2_signals', 's2_processor'],
+    s3_prompt: ['s3_prompt', 's3_narrative'],
+    s4_llm: ['s4_llm', 's6_qa'],
+  };
+  PHASE_DEFS.forEach(p => {
+    const keys = alias[p.key] || [p.key];
+    const val = keys.map(k => timings[k]).find(v => v != null);
+    if (val != null) setPhaseTime(domain, p.key, val);
+  });
+  const rows = PHASE_DEFS.map(p => {
+    const keys = alias[p.key] || [p.key];
+    const val = keys.map(k => timings[k]).find(v => v != null);
+    return {
+      section: p.key,
+      label: p.label,
+      seconds: val != null ? Number(val) : null,
+      display: formatSeconds(val),
+    };
+  });
+  console.groupCollapsed(`[timing] ${domain} total=${formatSeconds(timings.total)}`);
+  console.table(rows);
+  console.log('raw timings', timings);
+  console.groupEnd();
+}
+
+function setPhaseState(domain, phaseKey, state) {
+  const card = document.querySelector(`.domain-card[data-domain="${domain}"]`);
+  if (!card) return;
+  const phase = card.querySelector(`[data-phase="${phaseKey}"]`);
+  if (!phase) return;
+  phase.classList.remove('active', 'done', 'error');
+  if (state) phase.classList.add(state);
+}
+
+function setPhaseBody(domain, phaseKey, html) {
+  const card = document.querySelector(`.domain-card[data-domain="${domain}"]`);
+  if (!card) return;
+  const phase = card.querySelector(`[data-phase="${phaseKey}"]`);
+  if (!phase) return;
+  phase.querySelector('.phase-body').innerHTML = html;
+}
+
+function resolvePhasePayload(domainResult, phaseKey) {
+  if (!domainResult || typeof domainResult !== 'object') return undefined;
+  switch (phaseKey) {
+    case 's1_extract':
+      return domainResult.s1_extract || domainResult.phase0_raw_data;
+    case 's2_signals':
+      return (
+        domainResult.s2_signals ||
+        domainResult.s2_processor ||
+        domainResult.phase1_signals ||
+        domainResult.phase1_extracted_signals
+      );
+    case 's3_prompt':
+      return (
+        domainResult.s3_prompt || {
+          narrative:
+            domainResult.s3_narrative ||
+            domainResult.phase1b_narrative ||
+            domainResult.phase1b_user_narrative,
+          group:
+            domainResult.s4_group ||
+            domainResult.phase2_group ||
+            domainResult.qa_selected_group,
+          question:
+            domainResult.s5_question ||
+            domainResult.phase3_question ||
+            domainResult.qa_selected_question,
+        }
+      );
+    case 's4_llm':
+      return (
+        domainResult.s4_llm ||
+        domainResult.s6_qa ||
+        domainResult.phase4_qa_answer ||
+        domainResult.qa_answer
+      );
+    default:
+      return domainResult[phaseKey];
+  }
+}
+
+function renderPhaseData(domain, phaseKey, payload) {
+  if (payload === null || payload === undefined) {
+    setPhaseBody(domain, phaseKey, '<em style="color:var(--text-dim);">No data</em>');
+    return;
+  }
+
+  if (phaseKey === 's1_extract' && typeof payload === 'object') {
+    const extractJson = payload.raw_data != null ? payload.raw_data : payload;
+
+    let displayJson = extractJson;
+    if (displayJson && typeof displayJson === 'object' && displayJson._extract_api_fetches) {
+      const { _extract_api_fetches, ...rest } = displayJson;
+      displayJson = rest;
+    }
+
+    let mergedText;
+    try {
+      mergedText = JSON.stringify(displayJson, null, 2);
+    } catch (e) {
+      mergedText = String(displayJson);
+    }
+    const mergedBytes = new Blob([mergedText]).size;
+    const fullBytes = new Blob([JSON.stringify(extractJson, null, 2)]).size;
+    const topLevelKeys = displayJson && typeof displayJson === 'object'
+      ? Object.keys(displayJson)
+      : [];
+
+    const fields = payload.fields || {};
+    const fieldChips = Object.keys(fields).map(k => {
+      const f = fields[k] || {};
+      const ok = !!f.present;
+      const n = f.count;
+      return `<span style="display:inline-block; margin:2px 6px 2px 0; padding:2px 8px; border-radius:999px; font-size:10px; border:1px solid var(--border); background:var(--bg-2);">
+        <span style="color:${ok ? 'var(--green)' : 'var(--red)'};">${ok ? '✓' : '✗'}</span>
+        <code>${escapeHtml(k)}</code>${ok && n != null ? ` <span style="color:var(--text-dim)">(${n})</span>` : ''}
+      </span>`;
+    }).join('');
+
+    const html = `
+      <div class="qa-field">
+        <div class="qa-field-label">📦 raw_data dict — input cho processor + LLM</div>
+        <div class="qa-field-value" style="font-size:11px; line-height:1.6;">
+          Đây là dict sau khi <code>field_keep_map</code> đã filter xong
+          (giữ đúng các field cho từng API path).
+          Processor sẽ đọc dict này, áp <code>canonical_field_mapping</code> để rename,
+          rồi đưa vào narrative → LLM prompt.
+        </div>
+      </div>
+      ${fieldChips ? `
+      <div class="qa-field">
+        <div class="qa-field-label">Top-level keys (${topLevelKeys.length})</div>
+        <div class="qa-field-value">
+          ${topLevelKeys.map(k => `<code style="margin-right:6px; color:var(--accent);">${escapeHtml(k)}</code>`).join('')}
+          <div style="margin-top:8px;">${fieldChips}</div>
+        </div>
+      </div>` : ''}
+      <details class="qa-field" open style="margin-top:14px;">
+        <summary style="cursor:pointer; font-size:12px; color:var(--text-dim);">
+          Full raw_data JSON · ${prettyBytes(mergedBytes)}${mergedBytes !== fullBytes ? ` (raw gốc + debug: ${prettyBytes(fullBytes)})` : ''}
+        </summary>
+        <div style="display:flex; justify-content:flex-end; margin:6px 0;">
+          <button type="button" class="btn-secondary" style="font-size:11px; padding:2px 8px;"
+            onclick="(function(btn){const pre=btn.closest('details').querySelector('pre'); navigator.clipboard.writeText(pre.textContent).then(()=>{btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy JSON',1200);});})(this)">Copy JSON</button>
+        </div>
+        <pre class="raw-pre extract-json" style="font-size:10px; max-height:480px; overflow:auto; min-height:0;">${escapeHtml(mergedText)}</pre>
+      </details>`;
+    setPhaseBody(domain, phaseKey, html);
+    return;
+  }
+
+  // 2 · Signals
+  if (phaseKey === 's2_signals' && typeof payload === 'object') {
+    const meta = payload.meta || {};
+
+    const fmt = (days) => {
+      if (days === 999 || days === null || days === undefined) return 'NO DATA';
+      if (days === 0) return 'TODAY';
+      return `${days}d`;
+    };
+
+    const stale = `hr=${fmt(meta.hr_data_staleness_days)}, sleep=${fmt(meta.sleep_data_staleness_days)}, steps=${fmt(meta.steps_data_staleness_days)}, mood=${fmt(meta.mood_data_staleness_days)}, energy=${fmt(meta.energy_data_staleness_days)}`;
+
+    const metaHtml = `
+      <div class="qa-field">
+        <div class="qa-field-label">Time Context</div>
+        <div class="qa-field-value">
+          phase: <strong>${escapeHtml(meta.time_phase || '?')}</strong> |
+          current_time: ${escapeHtml(meta.current_time || '?')}
+        </div>
+      </div>
+      <div class="qa-field">
+        <div class="qa-field-label">Data Staleness</div>
+        <div class="qa-field-value">${stale}</div>
+      </div>`;
+
+    // Canonical health focuses (+ score, period, context; legacy mirrors last).
+    // Render FULL JSON per focus in a collapsible <details>; show a one-line summary above
+    // so the section still scannable at a glance.
+    const hs = payload.health_signals;
+    let healthHtml = '';
+    if (hs && typeof hs === 'object') {
+      const focusKeys = [
+        'sleep', 'heart_rate', 'energy', 'steps', 'mood',
+        'health_score', 'period_aggregates', 'context_signals',
+        'activity', 'cardio_stress',
+      ];
+      healthHtml = focusKeys.map(sk => {
+        const v = hs[sk];
+        if (v === null || v === undefined) {
+          return `<div class="qa-field"><div class="qa-field-label">health_signals.${sk}</div><div class="qa-field-value"><span style="color:var(--red)">✗ missing</span></div></div>`;
+        }
+        const isLegacy = sk === 'activity' || sk === 'cardio_stress';
+        const label = isLegacy
+          ? `health_signals.${sk} <span style="color:var(--text-dim); font-weight:400;">(legacy mirror)</span>`
+          : `health_signals.${sk}`;
+        // One-line summary (status, key metrics) — always visible
+        let summaryLine = '';
+        if (sk === 'context_signals' && typeof v === 'object') {
+          const activeKeys = Object.keys(v).filter(ck => {
+            const item = v[ck];
+            return item && (item.active === true || item.is_active === true);
+          });
+          summaryLine = activeKeys.length
+            ? `active: ${activeKeys.join(', ')}`
+            : `keys: ${Object.keys(v).length}`;
+        } else if (typeof v === 'object') {
+          const top = pickTopMetrics(v, sk);
+          summaryLine = top || '';
+        }
+        // Full JSON in collapsible details
+        let fullJson = '';
+        if (sk === 'context_signals' && typeof v === 'object') {
+          fullJson = Object.keys(v).map(ck => `${ck}: ${JSON.stringify(v[ck])}`).join('\n');
+        } else if (typeof v === 'object') {
+          fullJson = JSON.stringify(v, null, 2);
+        } else {
+          fullJson = String(v);
+        }
+        const bytes = new Blob([fullJson]).size;
+        return `<div class="qa-field">
+          <div class="qa-field-label">${label}${summaryLine ? ` <span style="color:var(--text-dim); font-weight:400; font-size:11px;">— ${escapeHtml(summaryLine)}</span>` : ''} <span style="color:var(--text-dim); font-weight:400; font-size:10px;">· ${prettyBytes(bytes)}</span></div>
+          <div class="qa-field-value" style="font-size:11px;">
+            <details>
+              <summary style="cursor:pointer; color:var(--accent); font-size:11px;">Show full JSON</summary>
+              <pre style="font-size:11px; max-height:600px; overflow:auto; margin:6px 0 0; padding:8px; background:var(--bg-0); border-radius:6px;">${escapeHtml(fullJson)}</pre>
+            </details>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Render every subKey of these top-level signal blocks with FULL JSON
+    // (each in its own collapsible <details> so DOM stays manageable for big blobs).
+    const signalKeys = domain === 'health'
+      ? ['calendar_intelligence', 'behavioral_patterns']
+      : ['health_signals', 'productivity_signals', 'calendar_intelligence', 'behavioral_patterns', 'goal_progress'];
+    const signalsHtml = signalKeys.map(k => {
+      const s = payload[k];
+      if (!s) return `<div class="qa-field"><div class="qa-field-label">${k}</div><div class="qa-field-value"><span style="color:var(--text-dim)">—</span></div></div>`;
+      const subKeys = Object.keys(s).filter(sk => !sk.startsWith('_'));
+      const signalList = subKeys.map(sk => {
+        const v = s[sk];
+        if (v === null || v === undefined) return `<div style="margin:2px 0; color:var(--text-dim);"><code>${escapeHtml(sk)}</code>: null</div>`;
+        if (typeof v === 'object') {
+          const json = JSON.stringify(v, null, 2);
+          const bytes = new Blob([json]).size;
+          // Top-level scalar fields render inline; nested objects/arrays get collapsible.
+          const isNested = Array.isArray(v) || (typeof v === 'object' && Object.keys(v).length > 0 && typeof Object.values(v)[0] === 'object');
+          if (isNested) {
+            return `<div style="margin:6px 0; padding:6px 8px; background:var(--bg-2); border-radius:6px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <code style="color:var(--accent); font-size:12px;">${escapeHtml(sk)}</code>
+                <span style="color:var(--text-dim); font-size:10px;">${prettyBytes(bytes)} · ${Array.isArray(v) ? v.length + ' items' : Object.keys(v).length + ' keys'}</span>
+              </div>
+              <details style="margin-top:4px;">
+                <summary style="cursor:pointer; color:var(--accent); font-size:11px;">Show full JSON</summary>
+                <pre style="font-size:11px; max-height:500px; overflow:auto; margin:6px 0 0; padding:8px; background:var(--bg-0); border-radius:6px;">${escapeHtml(json)}</pre>
+              </details>
+            </div>`;
+          }
+          // Flat object: render inline as k=v lines
+          const flat = Object.keys(v).map(fk => `${fk}=${JSON.stringify(v[fk])}`).join(' · ');
+          return `<div style="margin:2px 0;"><code style="color:var(--accent); font-size:12px;">${escapeHtml(sk)}</code>: <span style="color:var(--text-dim); font-size:11px;">${escapeHtml(flat)}</span></div>`;
+        }
+        return `<div style="margin:2px 0;"><code style="color:var(--accent); font-size:12px;">${escapeHtml(sk)}</code>: ${escapeHtml(String(v))}</div>`;
+      }).join('');
+      return `<div class="qa-field">
+        <div class="qa-field-label">${k} (${subKeys.length} keys)</div>
+        <div class="qa-field-value" style="font-size:12px; line-height:1.4;">${signalList}</div>
+      </div>`;
+    }).join('');
+    setPhaseBody(domain, phaseKey, metaHtml + healthHtml + signalsHtml);
+    return;
+  }
+
+  // 3 · Prompt (narrative + fixed overview)
+  if (phaseKey === 's3_prompt' && typeof payload === 'object') {
+    const group = payload.group || {};
+    const question = payload.question || {};
+    const narrative = payload.narrative || '';
+    const html = `
+      <div class="qa-field">
+        <div class="qa-field-label">Fixed overview</div>
+        <div class="qa-field-value">
+          <strong>group_id:</strong> <code style="color:var(--accent)">${escapeHtml(group.group_id || '')}</code>
+          &nbsp;|&nbsp;
+          <strong>focus:</strong> <span style="color:var(--yellow)">${escapeHtml(group.focus || '')}</span>
+          ${group.selection ? `<br><strong>selection:</strong> ${escapeHtml(group.selection)}` : ''}
+          <br><strong>question:</strong> <code style="color:var(--accent)">${escapeHtml(question.id || '')}</code>
+        </div>
+      </div>
+      ${question.text ? `
+      <div class="qa-field">
+        <div class="qa-field-label">Question text</div>
+        <div class="qa-field-value"><em>"${escapeHtml(question.text)}"</em></div>
+      </div>` : ''}
+      <div class="qa-field">
+        <div class="qa-field-label">Narrative (inline in user prompt)</div>
+        <div class="prose">${escapeHtml(narrative)}</div>
+      </div>`;
+    setPhaseBody(domain, phaseKey, html);
+    return;
+  }
+
+  // 4 · LLM (title + insight; prose already composed)
+  if (phaseKey === 's4_llm' && typeof payload === 'object') {
+    const fields = [
+      { key: 'prose', label: 'Prose (title + insight)', cls: 'signal' },
+      { key: 'title', label: 'Title', cls: 'signal' },
+      { key: 'insight', label: 'Insight body', cls: 'signal' },
+      { key: 'reasoning', label: 'Reasoning (layers)', cls: 'cause' },
+      { key: 'evidence', label: 'Evidence', cls: 'evidence' },
+      { key: 'cause', label: 'Why It Matters (Cause)', cls: 'cause' },
+      { key: 'action', label: 'Next Action', cls: 'action' },
+      { key: 'expected_outcome', label: 'Expected Outcome', cls: 'outcome' },
+      { key: 'confidence', label: 'Confidence', cls: 'confidence' },
+      { key: 'action_family', label: 'Action Family', cls: 'action' },
+      { key: 'tone', label: 'Tone', cls: 'signal' },
+    ];
+    const html = fields.map(f => {
+      const val = payload[f.key];
+      if (val === null || val === undefined || val === '') return '';
+      const displayVal = (typeof val === 'object')
+        ? JSON.stringify(val, null, 2)
+        : (Array.isArray(val) ? JSON.stringify(val, null, 2) : String(val));
+      return `
+        <div class="qa-field">
+          <div class="qa-field-label">${f.label}</div>
+          <div class="qa-field-value ${f.cls}">${escapeHtml(displayVal)}</div>
+        </div>`;
+    }).join('');
+    setPhaseBody(domain, phaseKey, html);
+    return;
+  }
+
+  // Default: show as JSON
+  try {
+    const json = JSON.stringify(payload, null, 2);
+    const tooLarge = json.length > 200 * 1024;
+    if (tooLarge) {
+      // Skip inline rendering for giant blobs (>200KB) — copy/download only.
+      const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const sig = JSON.stringify(payload, null, 2).slice(0, 4096);
+      setPhaseBody(
+        domain,
+        phaseKey,
+        `<div style="color:var(--yellow); font-size:12px;">
+          ⚠️ Payload is ${(json.length / 1024).toFixed(1)} KB — too large to render inline.
+          <button type="button" class="btn-secondary" style="margin-left:8px;"
+            onclick="navigator.clipboard.writeText(${JSON.stringify(json)}).then(b=>b.textContent='Copied')">Copy JSON</button>
+        </div>
+        <details style="margin-top:6px;"><summary style="cursor:pointer; font-size:11px; color:var(--text-dim);">preview first 4 KB</summary>
+          <pre style="font-size:10px; max-height:240px; overflow:auto;">${esc(sig)}</pre>
+        </details>`
+      );
+      return;
+    }
+    setPhaseBody(domain, phaseKey, `<pre>${syntaxHighlight(payload)}</pre>`);
+  } catch (e) {
+    setPhaseBody(domain, phaseKey, `<pre>${escapeHtml(String(payload))}</pre>`);
+  }
+}
+
+function renderDomainCard(domain) {
+  const cfg = DOMAIN_LABELS[domain];
+  // ── Special: API Raw card (no phases — shows upstream API fetches) ──
+  if (domain === 'api_raw') {
+    return `
+      <div class="domain-card" data-domain="api_raw">
+        <div class="domain-header">
+          <h2><span class="dot" style="background:var(--accent); box-shadow: 0 0 10px var(--accent);"></span> ${cfg.name}</h2>
+          <span class="domain-status" data-status>Idle</span>
+        </div>
+        <div class="phases" id="api-raw-phases">
+          <div class="api-raw-card-empty" style="color:var(--text-dim); font-size:12px; text-align:center; padding:24px;">
+            🔌 Run the pipeline to see raw upstream API responses here.<br>
+            <span style="font-size:11px;">Each call shows method · path · response before field_keep_map filtering.</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  const parts = [
+    `<div class="domain-card" data-domain="${domain}">`,
+      `<div class="domain-header">`,
+        `<h2><span class="dot ${cfg.color}"></span> ${cfg.name}</h2>`,
+        `<span class="domain-status" data-status>Idle</span>`,
+      `</div>`,
+      `<div class="phases">`,
+  ];
+  PHASE_DEFS.forEach((p, idx) => {
+    const badgeHtml = p.type ? `<span class="phase-badge ${p.type}">${p.type.toUpperCase()}</span>` : '';
+    const implHtml = p.impl
+      ? `<span style="font-size:10px; color:var(--text-dim); margin-left:6px; font-weight:400;">${p.impl}</span>`
+      : '';
+    parts.push(
+      `<div class="phase" data-phase="${p.key}">`,
+        `<div class="phase-header" data-toggle="${p.key}">`,
+          `<div class="phase-title">`,
+            `<div class="phase-num">${idx + 1}</div>`,
+            `<span>${p.label}${badgeHtml}${implHtml}</span>`,
+          `</div>`,
+          `<div class="phase-header-right">`,
+            `<span class="phase-time empty" data-phase-time>—</span>`,
+            `<span class="phase-toggle">▾</span>`,
+          `</div>`,
+        `</div>`,
+        `<div class="phase-desc">${escapeHtml(p.desc || '')}</div>`,
+        `<div class="phase-body"></div>`,
+      `</div>`
+    );
+  });
+  parts.push(`</div></div>`);
+  return parts.join('');
+}
+
+function renderAllCards() {
+  const container = document.getElementById('domains-container');
+  container.innerHTML = Object.keys(DOMAIN_LABELS).map(renderDomainCard).join('');
+  container.querySelectorAll('[data-toggle]').forEach(el => {
+    el.addEventListener('click', () => {
+      const phaseEl = el.closest('.phase');
+      if (phaseEl) phaseEl.classList.toggle('open');
+    });
+  });
+  // Initialize API Raw panel body with empty state
+  setApiRawPanelBody([]);
+}
+
+function setAllPhasesOpen(open) {
+  document.querySelectorAll('.domain-card').forEach(card => {
+    card.querySelectorAll('.phase').forEach(p => {
+      if (open) p.classList.add('open');
+      else p.classList.remove('open');
+    });
+  });
+}
+
+function simulateProgressivePhases(domain) {
+  PHASE_DEFS.forEach((p, idx) => {
+    setTimeout(() => setPhaseState(domain, p.key, 'active'), idx * 300);
+  });
+}
+
+function renderFinalSummary() {
+  const grid = document.getElementById('final-grid');
+  grid.innerHTML = '';
+  let any = false;
+  Object.keys(DOMAIN_LABELS).forEach(domain => {
+    if (domain === 'api_raw') return; // API Raw is not an insight domain
+    const cfg = DOMAIN_LABELS[domain];
+    const state = domainState[domain];
+    // Try both old and new key for backwards compatibility
+    const final = state.data && (
+      (state.data.s4_llm && state.data.s4_llm.prose) ||
+      state.data.s9_polish ||
+      state.data.phase6_edited_insight ||
+      state.data.phase6_editor ||
+      state.data.phase6_polished_insight ||
+      state.data.phase6_polish ||
+      state.data.s8_render ||
+      state.data.phase5_render ||
+      state.data.phase5_rendered_insight
+    );
+    const card = document.createElement('div');
+    card.className = 'final-card ' + cfg.color;
+    card.innerHTML = `
+      <h3><span class="dot ${cfg.color}"></span> ${cfg.name}</h3>
+      <div class="final-text">${final ? escapeHtml(final) : '<em style="color:var(--text-dim)">— no result —</em>'}</div>`;
+    grid.appendChild(card);
+    if (final) any = true;
+  });
+  document.getElementById('final-section').style.display = any ? 'block' : 'none';
+}
+
+// ───────────────────────────────────────────────────────────────────
+//  Pipeline runner
+// ───────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch raw API fetches (upstream API responses) — separate from the insight pipeline.
+ * Returns the `_extract_api_fetches` array from /insight/preview_raw_data,
+ * which shows the raw upstream API calls BEFORE field_keep_map filtering.
+ */
+async function fetchApiRawData() {
+  const userId = document.getElementById('user_id').value.trim();
+  if (!userId) {
+    setStatus('❌ User ID is required to fetch API Raw data.', 'error');
+    setApiRawPanelBody([]);
+    return;
+  }
+
+  const _urlEl = document.getElementById('backend-url-input');
+  const backendUrl = (_urlEl && _urlEl.value.trim()) || 'http://localhost:8001';
+  const timezone = document.getElementById('timezone').value;
+  const provider_name = document.getElementById('provider_name').value.trim();
+  const language = document.getElementById('language').value;
+
+  const cardBtn = document.getElementById('fetch-api-raw-btn-card');
+  if (cardBtn) {
+    cardBtn.disabled = true;
+    cardBtn.textContent = '⏳ Fetching…';
+  }
+  setDomainStatus('api_raw', 'running', '⏳ Fetching…');
+
+  try {
+    const key = (document.getElementById('api_key') && document.getElementById('api_key').value)
+      || 'insync_chatbot_sk_live_2KWF1VkBYjlhXZZMQZYl9vai';
+    const res = await fetch(backendUrl + '/insight/preview_raw_data', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        timezone,
+        provider_name,
+        language,
+        domain: 'health',
+      }),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`HTTP ${res.status} — ${txt}`);
+    }
+    const json = await res.json();
+    const fetches = json.api_fetches || [];
+    currentApiRawFetches = fetches;
+    setApiRawPanelBody(fetches);
+  } catch (err) {
+    console.error('[fetchApiRawData]', err);
+    setStatus('❌ fetchApiRawData failed: ' + err.message, 'error');
+    setApiRawPanelBody([]);
+  } finally {
+    const cardBtn = document.getElementById('fetch-api-raw-btn-card');
+    if (cardBtn) {
+      cardBtn.disabled = false;
+      cardBtn.textContent = '🔄 Refresh';
+    }
+  }
+}
+
+async function fetchLiveRawData() {
+  const btn = document.getElementById('fetch-raw-btn');
+  const userId = document.getElementById('user_id').value.trim();
+  if (!userId) {
+    setStatus('❌ User ID is required to fetch raw_data.', 'error');
+    return;
+  }
+
+  const _urlEl = document.getElementById('backend-url-input');
+  const backendUrl = (_urlEl && _urlEl.value.trim()) || 'http://localhost:8001';
+  const timezone = document.getElementById('timezone').value;
+  const provider_name = document.getElementById('provider_name').value.trim();
+  const language = document.getElementById('language').value;
+
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = '⏳ Fetching…';
+  setStatus(`⏳ Fetching raw_data for user_id="${userId}" from ${backendUrl}/insight/preview_raw_data …`, 'info');
+
+  try {
+    const key = (document.getElementById('api_key') && document.getElementById('api_key').value)
+      || 'insync_chatbot_sk_live_2KWF1VkBYjlhXZZMQZYl9vai';
+    const res = await fetch(backendUrl + '/insight/preview_raw_data', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        timezone,
+        provider_name,
+        language,
+        domain: 'health',  // never "all" — that pulls finance
+      }),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`HTTP ${res.status} — ${txt}`);
+    }
+    const json = await res.json();
+    const raw = json.raw_data;
+    if (!raw) throw new Error('No raw_data in response');
+
+    // Cache vào state + fill vào raw panel
+    currentRawData = raw;
+    renderRawData(raw);
+
+    // Also populate the API Raw panel with _extract_api_fetches
+    const fetches = Array.isArray(raw._extract_api_fetches) ? raw._extract_api_fetches : (json.api_fetches || []);
+    currentApiRawFetches = fetches;
+    renderApiRawPanel(fetches);
+
+    const sz = json.size_bytes || new Blob([JSON.stringify(raw)]).size;
+    const fc = json.field_counts || {};
+    const healthCalls = fetches.filter(f => String(f.path || '').includes('/api/health/summaries'));
+    const sum = [
+      `${fc.user_profile_keys ?? '?'} profile keys`,
+      `${fc.calendar_events ?? '?'} events`,
+      `today_health_stats=${fc.today_health_stats_keys ?? (raw.today_health_stats ? Object.keys(raw.today_health_stats).length : 0)}`,
+      `health_params=${fc.health_params_keys ?? '?'}`,
+      `${fetches.length} API fetches`,
+      `${healthCalls.length}× /api/health/summaries`,
+    ].join(', ');
+    setStatus(`✅ Raw data fetched (${prettyBytes(sz)}) · ${sum}. Open Extract phase after Run to inspect each call.`, 'success');
+    return true;
+  } catch (err) {
+    setStatus('❌ fetchLiveRawData failed: ' + err.message, 'error');
+    return false;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+async function runPipeline() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Running…';
+
+  // reset
+  Object.keys(DOMAIN_LABELS).forEach(d => {
+    domainState[d].data = null;
+    setDomainStatus(d, '', 'Idle');
+    if (d === 'api_raw') {
+      // API Raw card has no phases — just reset the body
+      setApiRawPanelBody([]);
+      return;
+    }
+    PHASE_DEFS.forEach(p => {
+      setPhaseState(d, p.key, null);
+      setPhaseBody(d, p.key, '');
+      setPhaseTime(d, p.key, null);
+    });
+  });
+  document.getElementById('final-section').style.display = 'none';
+
+  const _urlEl = document.getElementById('backend-url-input');
+  const backendUrl = (_urlEl && _urlEl.value.trim()) || 'http://localhost:8001';
+  const statusBanner = document.getElementById('status-banner');
+  // Tổng wall-clock đo từ lúc user bấm Run (bao gồm cả step 1 fetch raw).
+  const runPipelineStart = performance.now();
+  // clientStart trong startTimer() đo riêng từng step.
+  let step1Sec = 0;
+  // Live timer: replace the status text every 1s with elapsed seconds so the
+  // user can see progress during long LLM calls (3 domains ≈ 30-40s).
+  let timerHandle = null;
+  let clientStart = performance.now();
+  const startTimer = (baseText) => {
+    // Reset start ngay khi gọi để timer đo đúng từ đầu phase này
+    // (không bị cộng dồn từ các phase trước).
+    clientStart = performance.now();
+    if (timerHandle) clearInterval(timerHandle);
+    timerHandle = setInterval(() => {
+      const elapsed = (performance.now() - clientStart) / 1000;
+      statusBanner.textContent = `${baseText} · elapsed ${formatSeconds(elapsed)}`;
+    }, 1000);
+  };
+  const stopTimer = () => {
+    if (timerHandle) {
+      clearInterval(timerHandle);
+      timerHandle = null;
+    }
+  };
+
+  let body = {};
+  let domains = [];
+
+  // Chỉ user_id mode hiện tại.
+  const user_id = document.getElementById('user_id').value.trim();
+  if (!user_id) {
+    setStatus('❌ User ID is required.', 'error');
+    btn.disabled = false;
+    btn.textContent = '▶ Run Full Pipeline';
+    return;
+  }
+  const timezone = document.getElementById('timezone').value;
+  const language = document.getElementById('language').value;
+  const provider_name = document.getElementById('provider_name').value.trim();
+
+  // ── Bước 1: fetch raw_data ngay (1-2s, không có LLM) ─────────────
+  // Lấp đầy Raw panel + s1_extract phase để user inspect trong khi chờ
+  // LLM chạy các phase còn lại. Nếu fail thì vẫn tiếp tục /debug (debug
+  // endpoint tự fetch raw_data nếu cần).
+  setStatus(`⏳ Step 1/2 — fetching raw_data from ${backendUrl}/insight/preview_raw_data (no LLM)…`, 'info');
+  startTimer(`⏳ Fetching raw_data`);
+  const fetched = await fetchLiveRawData();
+  step1Sec = (performance.now() - runPipelineStart) / 1000;
+  if (fetched) {
+    // Đẩy raw_data vào s1_extract phase của 3 domain luôn để user thấy
+    // ngay data đưa vào processor, không phải đợi LLM xong.
+    Object.keys(DOMAIN_LABELS).forEach(domain => {
+      if (domains.length === 0 || domains.includes(domain)) {
+        setPhaseBody(domain, 's1_extract',
+          `<div class="qa-field"><div class="qa-field-label">⏳ Loading…</div><div class="qa-field-value">Step 1/2 done — raw_data fetched (${prettyBytes(new Blob([JSON.stringify(currentRawData, null, 2)]).size)}). /debug endpoint đang chạy extract + signals + LLM ở step 2/2…</div></div>`
+        );
+        setPhaseState(domain, 's1_extract', 'active');
+      }
+    });
+  }
+
+  // ── Bước 2: chạy full pipeline (extract + signals + prompt + LLM) ──
+  body = {
+    user_id,
+    timezone,
+    language,
+    provider_name,
+    domains: ['health', 'productivity', 'overall'],
+    return_raw_data: true,  // backend trả raw_data để verify với panel trái
+  };
+  domains = body.domains;
+  setStatus(`⏳ Step 2/2 — running full pipeline (extract → signals → LLM)…`, 'info');
+  startTimer(`⏳ Step 2/2 — running pipeline`);
+
+  Object.keys(DOMAIN_LABELS).forEach(d => {
+    if (d === 'api_raw') return; // API Raw is separate — not part of insight pipeline
+    if (domains.includes(d)) {
+      // s1_extract đã được set 'active' ở step 1; chỉ activate các phase sau
+      setPhaseState(d, 's2_signals', 'active');
+      setPhaseState(d, 's3_prompt', 'active');
+      setPhaseState(d, 's4_llm', 'active');
+    }
+  });
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    // /insight/mock-raw-data and /insight/debug both live behind the
+    // bearer-token middleware. Always include the key (default value
+    // is provided by the input field for live mode; for mock/raw modes
+    // we fall back to the same default).
+    const key = (document.getElementById('api_key') && document.getElementById('api_key').value)
+      || 'insync_chatbot_sk_live_2KWF1VkBYjlhXZZMQZYl9vai';
+    headers['Authorization'] = 'Bearer ' + key;
+    const res = await fetch(backendUrl + '/insight/debug', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`HTTP ${res.status} — ${txt}`);
+    }
+    const json = await res.json();
+    console.log('[debug pipeline response]', json);
+
+    // Nếu backend trả raw_data (live mode), update raw panel ngay.
+    if (json.raw_data) {
+      currentRawData = json.raw_data;
+      renderRawData(currentRawData);
+      // Also update API Raw panel from the debug response's _extract_api_fetches
+      const debugFetches = Array.isArray(json.raw_data._extract_api_fetches)
+        ? json.raw_data._extract_api_fetches
+        : (currentApiRawFetches || []);
+      currentApiRawFetches = debugFetches;
+      renderApiRawPanel(debugFetches);
+      const sz = json.raw_data_size_bytes || new Blob([JSON.stringify(currentRawData)]).size;
+      setStatus(
+        `⏳ Pipeline running on live raw_data (${prettyBytes(sz)}) for user_id="${user_id || json.user_id}"…`,
+        'info'
+      );
+    }
+
+    Object.keys(DOMAIN_LABELS).forEach(domain => {
+      if (!domains.includes(domain)) {
+        setDomainStatus(domain, '', '— skipped —');
+        return;
+      }
+      const domainResult = json.domains && json.domains[domain];
+      if (!domainResult) {
+        setDomainStatus(domain, 'error', '✗ No data');
+        return;
+      }
+      domainState[domain].data = domainResult;
+
+      // Với s1_extract: ưu tiên data từ domainResult (đã qua keep_map backend),
+      // fallback về currentRawData đã fetch ở step 1.
+      const extractPayload = resolvePhasePayload(domainResult, 's1_extract');
+      let s1Payload = extractPayload;
+      if (!s1Payload || (typeof s1Payload === 'object' && Object.keys(s1Payload).length === 0)) {
+        if (currentRawData) {
+          s1Payload = {
+            raw_data: currentRawData,
+            fields: Object.fromEntries(
+              Object.entries(currentRawData).map(([k, v]) => [
+                k,
+                { present: v != null, count: Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0) }
+              ])
+            ),
+            note: 'raw_data fetched trước ở step 1/2 (1-2s, no LLM).',
+          };
+        }
+      }
+
+      if (domainResult.status === 'success') {
+        const timings = domainResult.timings || {};
+        const totalLabel = timings.total != null
+          ? ` · ${formatSeconds(timings.total)}`
+          : '';
+        setDomainStatus(domain, 'success', '✓ Done' + totalLabel);
+        applyDomainTimings(domain, timings);
+        // Render phases theo thứ tự: s1_extract trước (đã có data từ step 1),
+        // các phase sau render theo response.
+        requestAnimationFrame(() => renderPhaseData(domain, 's1_extract', s1Payload));
+        PHASE_DEFS.slice(1).forEach(p => {
+          setPhaseState(domain, p.key, 'done');
+          const payload = resolvePhasePayload(domainResult, p.key);
+          requestAnimationFrame(() => renderPhaseData(domain, p.key, payload));
+        });
+      } else {
+        applyDomainTimings(domain, domainResult.timings);
+        setDomainStatus(domain, 'error', '✗ ' + (domainResult.error || 'failed'));
+        // Vẫn render s1_extract với data đã có ở step 1
+        requestAnimationFrame(() => renderPhaseData(domain, 's1_extract', s1Payload));
+        PHASE_DEFS.slice(1).forEach(p => {
+          setPhaseState(domain, p.key, 'error');
+          setPhaseBody(domain, p.key,
+            `<pre style="color:var(--red)">${escapeHtml(JSON.stringify(domainResult, null, 2))}</pre>`);
+        });
+      }
+    });
+
+    const clientSec = (performance.now() - clientStart) / 1000;
+    const modeLabel = json.mode === 'raw_data' ? 'mock' : json.mode || 'live';
+    const rawSuffix = json.raw_data_size_bytes
+      ? ` · raw_data=${prettyBytes(json.raw_data_size_bytes)}`
+      : '';
+    const domainTotals = domains.map(d => {
+      const t = json.domains && json.domains[d] && json.domains[d].timings;
+      return t && t.total != null ? `${d}=${formatSeconds(t.total)}` : null;
+    }).filter(Boolean).join(', ');
+    // Tổng wall-clock = step1 (fetch raw) + step2 (debug). step1 đã đo từ
+    // runPipelineStart đến sau khi fetch xong.
+    const totalSec = typeof runPipelineStart === 'number'
+      ? (performance.now() - runPipelineStart) / 1000
+      : clientSec;
+    console.log(
+      `[timing] step1(fetch_raw)=${formatSeconds(step1Sec)} · step2(debug)=${formatSeconds(clientSec)} · total=${formatSeconds(totalSec)}` +
+      (domainTotals ? ` · domains: ${domainTotals}` : '')
+    );
+    setStatus(
+      `✅ Pipeline finished (mode=${modeLabel}${rawSuffix}) · step1=${formatSeconds(step1Sec)} step2=${formatSeconds(clientSec)} total=${formatSeconds(totalSec)}` +
+      (domainTotals ? ` · ${domainTotals}` : '') + '.',
+      'success'
+    );
+    renderFinalSummary();
+  } catch (err) {
+    console.error(err);
+    setStatus('❌ ' + err.message, 'error');
+    Object.keys(DOMAIN_LABELS).forEach(d => {
+      if (d === 'api_raw') return; // API Raw is separate
+      if (domains.includes(d)) {
+        setDomainStatus(d, 'error', '✗ Failed');
+        PHASE_DEFS.forEach(p => setPhaseState(d, p.key, 'error'));
+      }
+    });
+  } finally {
+    stopTimer();
+    btn.disabled = false;
+    btn.textContent = '▶ Run Full Pipeline';
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────
+//  Mode tabs + bootstrap
+// ───────────────────────────────────────────────────────────────────
+function bootstrap() {
+  renderAllCards();
+
+  // buttons
+  document.getElementById('run-btn').addEventListener('click', runPipeline);
+  document.getElementById('fetch-raw-btn').addEventListener('click', fetchLiveRawData);
+  document.getElementById('expand-btn').addEventListener('click', () => setAllPhasesOpen(true));
+  document.getElementById('collapse-btn').addEventListener('click', () => setAllPhasesOpen(false));
+  document.getElementById('copy-raw-btn').addEventListener('click', () => {
+    if (!currentRawData) {
+      setStatus('⚠️ No raw_data loaded yet.', 'error');
+      return;
+    }
+    navigator.clipboard.writeText(JSON.stringify(currentRawData, null, 2));
+    setStatus('✅ Raw data copied to clipboard.', 'success');
+  });
+  document.getElementById('download-raw-btn').addEventListener('click', () => {
+    if (!currentRawData) return;
+    const blob = new Blob([JSON.stringify(currentRawData, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (currentRawData.user_profile?.user_name || 'raw_data').replace(/\s+/g, '_') + '.json';
+    a.click();
+  });
+  document.getElementById('edit-raw-btn').addEventListener('click', enterEditMode);
+  document.getElementById('apply-raw-btn').addEventListener('click', applyEditedRaw);
+  document.getElementById('cancel-edit-btn').addEventListener('click', cancelEdit);
+  // Keyboard: Ctrl/Cmd+Enter inside editor = apply
+  document.getElementById('raw-editor').addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      applyEditedRaw();
+    }
+    // Tab inserts 2 spaces in editor
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const ed = e.target;
+      const start = ed.selectionStart, end = ed.selectionEnd;
+      ed.value = ed.value.slice(0, start) + '  ' + ed.value.slice(end);
+      ed.selectionStart = ed.selectionEnd = start + 2;
+    }
+  });
+
+  // backend probe
+  const _probeEl = document.getElementById('backend-url-input');
+  const _probeBase = (_probeEl && _probeEl.value) || 'https://agent.insidesync.ai';
+  fetch(_probeBase + '/health')
+    .then(r => {
+      const s = document.getElementById('backend-status');
+      if (s) s.style.color = r.ok ? 'var(--green)' : 'var(--red)';
+    })
+    .catch(() => {
+      const s = document.getElementById('backend-status');
+      if (s) s.style.color = 'var(--red)';
+    });
+}
+
+bootstrap();
+</script>
+</body>
+</html>
