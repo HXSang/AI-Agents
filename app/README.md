@@ -440,7 +440,7 @@ Key rules:
 
 ## 9. Example Flows
 
-### 10.1 Simple Multi-Action
+### 9.1 Simple Multi-Action
 
 ```
 User: "Schedule a meeting with An at 3pm and remind me to prepare slides"
@@ -464,7 +464,7 @@ User clicks Continue
 Summary → "✅ Done! Meeting with An at 15:00 and reminder are all set."
 ```
 
-### 10.2 Search + Multi-Action
+### 9.2 Search + Multi-Action
 
 ```
 User: "Check SJC gold price today, if under 100 million remind me to buy"
@@ -485,7 +485,7 @@ User clicks Continue
 Summary → "✅ SJC gold is at 98.5 million — below 100 million! Reminder created."
 ```
 
-### 10.3 Cancel Mid-Flow
+### 9.3 Cancel Mid-Flow
 
 ```
 User clicks Cancel after action_1 completes
