@@ -5,28 +5,28 @@
 
 ## 1. Overview
 
-Hệ thống chatbot agent trong `app/` bao gồm **2 feature chính**:
+The chatbot agent system in `app/` comprises **2 core features**:
 
-| Feature | Mô tả | Entry point |
+| Feature | Description | Entry point |
 |---|---|---|
-| **Multi-Action** | Thực thi nhiều hành động liên tiếp từ 1 câu prompt | `HybridWorkflow` → `_extract_multi_actions_node` |
-| **Search Tool** | Web search thời gian thực qua Tavily API | `web_search` tool → `WebSearchToolExecutor` |
+| **Multi-Action** | Execute multiple actions from a single prompt | `HybridWorkflow` → `_extract_multi_actions_node` |
+| **Search Tool** | Real-time web search via Tavily API | `web_search` tool → `WebSearchToolExecutor` |
 
 ---
 
 ## 2. Multi-Action System
 
-### 2.1 Tổng quan
+### 2.1 Overview
 
-Multi-action cho phép user yêu cầu **nhiều tác vụ trong 1 tin nhắn** (ví dụ: "tạo lịch họp 3h chiều và nhắc tôi chuẩn bị slide"). Hệ thống sẽ:
+Multi-action allows users to request **multiple tasks in one message** (e.g., "schedule a meeting at 3pm and remind me to prepare slides"). The system will:
 
-1. Phân tích intent → trích xuất danh sách actions
-2. Hiển thị **plan confirmation** (danh sách actions)
-3. User xác nhận → thực thi tuần tự từng action
-4. Mỗi action xong → hỏi Continue/Cancel
-5. Tất cả xong → tổng hợp kết quả
+1. Analyze intent → extract a list of actions
+2. Show **plan confirmation** (action list)
+3. User confirms → execute each action sequentially
+4. After each action → ask Continue/Cancel
+5. All done → summarize results
 
-### 2.2 Luồng chi tiết
+### 2.2 Detailed Flow
 
 ```
 User Message
@@ -49,44 +49,44 @@ plan_multi_actions() ──→ LLM generate plan confirmation message
 [User confirms via Continue quick_reply]
     │
     ▼
-execute_single_action() ──→ Thực thi từng action
+execute_single_action() ──→ Execute each action sequentially
     │
     ├── _run_agent() ──→ LangChain ReAct agent
     │   ├── Middleware chain (validation, handoff, retry)
     │   └── Tool execution
     │
-    ├── Lưu result vào complete_action_queue
+    ├── Save result to complete_action_queue
     │
-    ├── Nếu còn action → generate_connective_tissue() → hỏi Continue/Cancel
+    ├── If more actions → generate_connective_tissue() → ask Continue/Cancel
     │
-    └── Nếu queue empty → summarize_multi_actions() → tổng hợp kết quả
+    └── If queue empty → summarize_multi_actions() → summarize results
 ```
 
 ### 2.3 Quick Reply Buttons
 
-Sau mỗi action, hệ thống hiển thị 2 buttons:
+After each action, the system displays 2 buttons:
 
-| Button | Value | Hành động |
+| Button | Value | Behavior |
 |---|---|---|
-| ✅ Continue | `MULTI_ACTION_CONTINUE` | Thực thi action tiếp theo |
-| ❌ Cancel | `MULTI_ACTION_CANCEL` | Hủy toàn bộ queue |
+| ✅ Continue | `MULTI_ACTION_CONTINUE` | Execute next action |
+| ❌ Cancel | `MULTI_ACTION_CANCEL` | Cancel entire queue |
 
 ### 2.4 Action Execution States
 
-| State | Mô tả | Behavior |
+| State | Description | Behavior |
 |---|---|---|
-| `success` | Action hoàn thành | Pop khỏi queue, thêm vào completed |
-| `need_confirmation` | Chờ user xác nhận | **Tạm dừng** queue, hiển thị preview |
-| `cancelled` | User hủy action | Skip action, chuyển sang action tiếp theo |
-| `error` | Lỗi execution | Thông báo lỗi, dừng queue |
+| `success` | Action completed | Pop from queue, add to completed |
+| `need_confirmation` | Awaiting user confirmation | **Pause** queue, show preview |
+| `cancelled` | User cancelled action | Skip action, move to next |
+| `error` | Execution error | Report error, stop queue |
 
 ### 2.5 Redis Cache Keys (Multi-Action)
 
-| Key | TTL | Mô tả |
+| Key | TTL | Description |
 |---|---|---|
-| `user:{uid}:session:{sid}:multi_action:draft` | 1800s | Draft queue chờ user confirm |
-| `user:{uid}:session:{sid}:multi_action:pending` | 1800s | Queue đang chờ thực thi |
-| `user:{uid}:session:{sid}:multi_action:completed` | 1800s | Actions đã hoàn thành |
+| `user:{uid}:session:{sid}:multi_action:draft` | 1800s | Draft queue awaiting user confirmation |
+| `user:{uid}:session:{sid}:multi_action:pending` | 1800s | Queue currently awaiting execution |
+| `user:{uid}:session:{sid}:multi_action:completed` | 1800s | Completed actions |
 
 ### 2.6 Key Files
 
@@ -94,17 +94,17 @@ Sau mỗi action, hệ thống hiển thị 2 buttons:
 app/ai_agents/
 ├── multi_action/
 │   ├── multi_action_extractor.py     # Core: extract_multi_actions, execute_single_action
-│   ├── multi_action_prompt.py        # Prompts: plan, summary, connective tissue
-│   ├── multi_action_store.py         # Redis CRUD cho queues
-│   ├── suggestion_to_actions.py      # Convert smart_suggestions → action queue
-│   └── draft_edit.py                 # Free-text edit flow
-├── hybrid_workflow.py                 # LangGraph state machine orchestration
-└── middleware/ai_middleware.py       # Tool validation middleware chain
+│   ├── multi_action_prompt.py       # Prompts: plan, summary, connective tissue
+│   ├── multi_action_store.py        # Redis CRUD for queues
+│   ├── suggestion_to_actions.py     # Convert smart_suggestions → action queue
+│   └── draft_edit.py                # Free-text edit flow
+├── hybrid_workflow.py                # LangGraph state machine orchestration
+└── middleware/ai_middleware.py      # Tool validation middleware chain
 ```
 
 ### 2.7 Smart Suggestions → Multi-Action
 
-Khi user dùng `smart_suggestions` (plan mode), hệ thống tự động convert suggestions thành action queue:
+When the user uses `smart_suggestions` (plan mode), the system automatically converts suggestions into an action queue:
 
 ```
 smart_suggestions (plan mode)
@@ -112,7 +112,7 @@ smart_suggestions (plan mode)
     ▼
 build_action_queue_from_suggestions()
     │
-    ├── create_event → batch vào 1 create_event_by_name(events=[...])
+    ├── create_event → batch into 1 create_event_by_name(events=[...])
     ├── update_event → update_event_by_name
     ├── delete_event → delete_event_by_name
     ├── set_health_goal → set_health_goal
@@ -122,39 +122,39 @@ build_action_queue_from_suggestions()
 
 ### 2.8 Validation Rules (extract_operations_prompt)
 
-| Rule | Mô tả |
+| Rule | Description |
 |---|---|
-| R1 | Mỗi intent → 1 action riêng |
-| R2 | `tool_name` phải match đúng tên tool |
+| R1 | Each distinct intent → separate action |
+| R2 | `tool_name` must match exact tool name |
 | R3 | "rưỡi" = :30 (7r = 07:30) |
-| R4 | Không guess giờ nếu user chỉ nói "sáng"/"chiều" |
+| R4 | Don't guess time if user only said "morning"/"afternoon" |
 | R5 | Recurring events → `tool_name: "none"` (unsupported) |
-| R6 | Suggest actions → `web_search`, không phải "none" |
+| R6 | Suggest actions → `web_search`, not "none" |
 | R7 | Self-contained content → "none" |
 
 ---
 
 ## 3. Search Tool System
 
-### 3.1 Tổng quan
+### 3.1 Overview
 
-Search tool cho phép agent tìm kiếm web thời gian thực để trả lời các câu hỏi về:
+The search tool allows the agent to perform real-time web searches to answer questions about:
 
-- 💰 Giá vàng, tỷ giá, chứng khoán (volatile)
-- 📰 Tin tức, sự kiện (volatile)
-- 🏢 Thông tin công ty, nhân vật (stable)
-- 📋 Hướng dẫn, định nghĩa, luật (stable)
+- 💰 Gold prices, exchange rates, stocks (volatile)
+- 📰 News, events (volatile)
+- 🏢 Company info, person profiles (stable)
+- 📋 Guides, definitions, laws (stable)
 
-### 3.2 Luồng chi tiết
+### 3.2 Detailed Flow
 
 ```
-User Message (yêu cầu search)
+User Message (search request)
     │
     ▼
 HybridWorkflow._execute_agent_node()
     │
     ▼
-create_agent() với tools = [...] + web_search
+create_agent() with tools = [...] + web_search
     │
     ▼
 Agent decides to call web_search tool
@@ -162,8 +162,8 @@ Agent decides to call web_search tool
     ▼
 web_search(search_query, query_type)
     │
-    ├── query_type = "volatile" → thời gian nhạy cảm (prices, news)
-    └── query_type = "stable" → ít thay đổi (people, facts)
+    ├── query_type = "volatile" → time-sensitive (prices, news)
+    └── query_type = "stable" → slowly changing (people, facts)
     │
     ▼
 WebSearchToolExecutor.execute_search()
@@ -184,16 +184,16 @@ get_agent_directive() → main agent render response
 
 ### 3.3 Dynamic Routing (Query Type)
 
-| Query Type | Khi nào | Tavily time_range | Date trong query |
+| Query Type | When to Use | Tavily time_range | Date in Query |
 |---|---|---|---|
-| `volatile` | Giá, tỷ giá, tin tức, thời tiết | day → week | ❌ Không append |
-| `stable` | Người, công ty, định nghĩa | None (full scan) | ❌ Không append |
+| `volatile` | Prices, exchange rates, news, weather | day → week | ❌ Do NOT append |
+| `stable` | People, companies, definitions | None (full scan) | ❌ Do NOT append |
 
 ### 3.4 Source Priority (Tavily Results)
 
-| Tier | Nguồn | Ví dụ |
+| Tier | Source | Examples |
 |---|---|---|
-| **Tier 1** | Government & official | .gov, .org, ngân hàng trung ương |
+| **Tier 1** | Government & official | .gov, .org, central banks |
 | **Tier 2** | Established research & media | Peer-reviewed, major news |
 | **Tier 3** | Local reputable sources | Local retailers, finance sites |
 | **Tier 4** | Social media (fallback only) | YouTube, Facebook |
@@ -213,10 +213,10 @@ Source Date    → Classification
 
 ### 3.6 Redis Cache Keys (Search)
 
-Search tool **không cache** kết quả search vì:
-- Dữ liệu volatile → cache stale nhanh
-- Mỗi query unique → ít repeat potential
-- Tavily đã có internal rate limiting
+The search tool **does not cache** search results because:
+- Volatile data → cache goes stale quickly
+- Each query is unique → low repeat potential
+- Tavily already has internal rate limiting
 
 ### 3.7 Key Files
 
@@ -224,18 +224,18 @@ Search tool **không cache** kết quả search vì:
 app/ai_agents/tools/
 ├── search_tools.py                        # Tool definition
 └── executor/
-    ├── web_search_executor.py            # Orchestration logic
+    ├── web_search_executor.py             # Orchestration logic
     └── search_providers/
-        ├── base_provider.py              # Abstract interface
+        ├── base_provider.py               # Abstract interface
         ├── tavily_provider.py            # Tavily API implementation
-        ├── google_provider.py            # Google Search (unused)
+        ├── google_provider.py             # Google Search (unused)
         ├── aws_kendra_provider.py        # AWS Kendra (unused)
         └── __init__.py
 app/ai_agents/tools/validate/prompts/
 └── search_prompt.py                      # Query formulation + synthesis prompts
 ```
 
-### 3.8 Search Tool Tooltip (Agent nhận)
+### 3.8 Search Tool Tooltip (Agent Receives)
 
 ```
 "Search the web for real-time or current information.
@@ -252,7 +252,7 @@ QUERY TYPE CLASSIFICATION:
 
 ### 3.9 Search Integration with Multi-Action
 
-Search tool có thể được extract như một action trong multi-action flow:
+The search tool can be extracted as an action in the multi-action flow:
 
 ```
 User: "Check gold price then remind me to buy at 3pm"
@@ -262,7 +262,7 @@ extract_operations() → [
     "action_id": "action_1",
     "tool_name": "web_search",
     "arguments": {
-      "search_query": "giá vàng hôm nay",
+      "search_query": "gold price today",
       "query_type": "volatile"
     }
   },
@@ -270,7 +270,7 @@ extract_operations() → [
     "action_id": "action_2",
     "tool_name": "create_reminder",
     "arguments": {
-      "title": "Mua vàng",
+      "title": "Buy gold",
       "due_date": "2026-09-11T15:00"
     }
   }
@@ -311,15 +311,15 @@ def create_search_tools(
     executor = WebSearchToolExecutor(
         user_id=user_id, llm=llm, session_id=session_id, today_str=today_str
     )
-    
+
     # 2. Build tool description
     tool_description = create_query_formulation_prompt(...)
-    
+
     # 3. Define tool with @tool decorator
     @tool(description=tool_description)
     async def web_search(search_query: str, query_type: str) -> str:
         return await executor.execute_search(search_query, user_lang, query_type)
-    
+
     return [web_search]
 ```
 
@@ -336,22 +336,22 @@ class HybridState(TypedDict):
     chat_history: List[Dict[str, str]]
     user_id: str
     session_id: str
-    
+
     # Language detection
     language_code: str
     language_name: str
-    
+
     # Intent classification
     intent: Optional[Dict[str, Any]]
-    
+
     # Multi-action
     action_queue: Optional[List[Dict[str, Any]]]
     complete_action_queue: Optional[List[Dict[str, Any]]]
     multi_action_mode: bool
-    
+
     # Smart suggestions
     smart_suggestions_data: Optional[Dict[str, Any]]
-    
+
     # Output
     response: str
     quick_reply_buttons: Optional[List[Dict[str, str]]]
@@ -438,7 +438,7 @@ class ToolStatus:
 # app/config.py
 class Settings:
     search_max_results: int = 10          # Tavily max results per query
-    response_cache_ttl: int = 300          # Response cache TTL in seconds
+    response_cache_ttl: int = 300         # Response cache TTL in seconds
 ```
 
 ---
@@ -463,7 +463,7 @@ smart_suggestions (plan mode)
 ### 7.2 Search ↔ Multi-Action
 
 ```
-Multi-action queue với web_search
+Multi-action queue with web_search
     │
     ▼ execute_single_action()
     │   └── web_search(search_query, query_type)
@@ -478,7 +478,7 @@ Multi-action queue với web_search
 
 ### 8.1 Multi-Action Extract Prompt
 
-Key rules trong `extract_operations_prompt()`:
+Key rules in `extract_operations_prompt()`:
 - Every distinct intent → separate action
 - tool_name MUST match exact tool name
 - SEARCH RULE 1: General research → NO date
@@ -489,9 +489,9 @@ Key rules trong `extract_operations_prompt()`:
 ### 8.2 Plan Confirmation Prompt
 
 Generates friendly bulleted list with:
-- Future tense ("Mình sẽ...")
+- Future tense ("I will...")
 - Emoji per bullet
-- One confirm question ("Mình tiến hành nhé?")
+- One confirm question ("Shall we proceed?")
 
 ### 8.3 Connective Tissue Prompt
 
@@ -503,7 +503,7 @@ Generates transition between actions:
 ### 8.4 Search Query Formulation Prompt
 
 Key rules:
-- volatile → NO date appended, generic terms ("hôm nay")
+- volatile → NO date appended, generic terms ("today")
 - stable → NO date, full scan
 - Follow-up with citations → NEW search required
 - Location: local → append location, global → no location
@@ -529,46 +529,46 @@ Key rules:
 ### 10.1 Simple Multi-Action
 
 ```
-User: "Tạo lịch họp với An lúc 3h chiều và nhắc tôi chuẩn bị slide"
+User: "Schedule a meeting with An at 3pm and remind me to prepare slides"
 
 LLM Extract → [
   {action_id: "action_1", tool_name: "create_event_by_name", arguments: {...}},
   {action_id: "action_2", tool_name: "create_reminder", arguments: {...}}
 ]
 
-Plan → "📅 Mình sẽ tạo lịch họp với An lúc 15:00
-       ⏰ Sau đó nhắc bạn chuẩn bị slide
-       Tiến hành nhé?"
+Plan → "📅 I'll schedule a meeting with An at 15:00
+       ⏰ Then remind you to prepare slides
+       Shall we proceed?"
 
 User clicks Continue
   → execute_single_action(action_1) → calendar → success
-  → "Lịch họp đã tạo! Giờ mình nhắc bạn chuẩn bị slide nhé?"
-  
+  → "Meeting created! Now let me set up your slide prep reminder?"
+
 User clicks Continue
   → execute_single_action(action_2) → reminder → success
 
-Summary → "✅ Hoàn thành! Lịch họp với An lúc 15:00 và reminder đã sẵn sàng."
+Summary → "✅ Done! Meeting with An at 15:00 and reminder are all set."
 ```
 
 ### 10.2 Search + Multi-Action
 
 ```
-User: "Check giá vàng SJC hôm nay, nếu dưới 100 triệu thì nhắc tôi mua"
+User: "Check SJC gold price today, if under 100 million remind me to buy"
 
 LLM Extract → [
   {action_id: "action_1", tool_name: "web_search", arguments: {
-    search_query: "giá vàng SJC hôm nay", query_type: "volatile"
+    search_query: "SJC gold price today", query_type: "volatile"
   }}
 ]
 
-Plan → "🔍 Mình sẽ kiểm tra giá vàng SJC hôm nay"
+Plan → "🔍 I'll check today's SJC gold price"
 
 User clicks Continue
-  → web_search() → Tavily → returns "Giá vàng SJC: 98.5 triệu/lượng"
+  → web_search() → Tavily → returns "SJC gold price: 98.5 million/tael"
   → Check condition: 98.5 < 100 → TRUE
   → create_reminder → due_date = today 17:00
-  
-Summary → "✅ Giá vàng SJC hiện 98.5 triệu — dưới 100 triệu! Đã tạo reminder cho bạn."
+
+Summary → "✅ SJC gold is at 98.5 million — below 100 million! Reminder created."
 ```
 
 ### 10.3 Cancel Mid-Flow
@@ -579,5 +579,5 @@ User clicks Cancel after action_1 completes
 → process_multi_action_cancel()
   → Pop action_2 from queue
   → action_2.status = "cancelled"
-  → build_cancel_response() → "Đã hủy tạo reminder. Lịch họp vẫn giữ nguyên nhé!"
+  → build_cancel_response() → "Reminder cancelled. Your meeting is still set!"
 ```
