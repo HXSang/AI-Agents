@@ -422,10 +422,6 @@ class Settings:
 
 ## 7. Integration Points
 
----
-
-## 7. Integration Points
-
 ```
 Multi-action queue with web_search
     │
