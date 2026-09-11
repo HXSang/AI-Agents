@@ -348,8 +348,6 @@ AI-Agents/
 │               ├── energy/
 │               ├── mood/
 │               └── health_score/
-│
-└── chatbot-frontend/                   # User interface (separate repo)
 ```
 
 ---
