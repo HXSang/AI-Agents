@@ -1,4 +1,5 @@
 # Chatbot Agent — Workflow Reference
+
 > **Stack**: LangGraph → `HybridWorkflow` (LangChain ReAct Agent + LLM) → Tool Executors → External APIs (Tavily Search, Calendar, Health, Finance, etc.)
 
 ---
@@ -96,31 +97,12 @@ app/ai_agents/
 │   ├── multi_action_extractor.py     # Core: extract_multi_actions, execute_single_action
 │   ├── multi_action_prompt.py       # Prompts: plan, summary, connective tissue
 │   ├── multi_action_store.py        # Redis CRUD for queues
-│   ├── suggestion_to_actions.py     # Convert smart_suggestions → action queue
 │   └── draft_edit.py                # Free-text edit flow
 ├── hybrid_workflow.py                # LangGraph state machine orchestration
 └── middleware/ai_middleware.py      # Tool validation middleware chain
 ```
 
-### 2.7 Smart Suggestions → Multi-Action
-
-When the user uses `smart_suggestions` (plan mode), the system automatically converts suggestions into an action queue:
-
-```
-smart_suggestions (plan mode)
-    │
-    ▼
-build_action_queue_from_suggestions()
-    │
-    ├── create_event → batch into 1 create_event_by_name(events=[...])
-    ├── update_event → update_event_by_name
-    ├── delete_event → delete_event_by_name
-    ├── set_health_goal → set_health_goal
-    ├── create_finance_log → create_finance_logs
-    └── create_reminder → create_reminder
-```
-
-### 2.8 Validation Rules (extract_operations_prompt)
+### 2.7 Validation Rules (extract_operations_prompt)
 
 | Rule | Description |
 |---|---|
@@ -294,7 +276,6 @@ extract_operations() → [
 | **Company Info** | `get_company_info` |
 | **Profile** | `get_user_profile`, `get_goals`, `get_calendar_preferences` |
 | **Search** | `web_search` |
-| **Smart Suggestions** | `get_smart_suggestions` |
 
 ### 4.2 Tool Creation Pattern
 
@@ -349,9 +330,6 @@ class HybridState(TypedDict):
     complete_action_queue: Optional[List[Dict[str, Any]]]
     multi_action_mode: bool
 
-    # Smart suggestions
-    smart_suggestions_data: Optional[Dict[str, Any]]
-
     # Output
     response: str
     quick_reply_buttons: Optional[List[Dict[str, str]]]
@@ -401,7 +379,6 @@ merge_preprocess (barrier)
 | `ReasoningContentFilterMiddleware` | Strip internal reasoning from response |
 | `ToolChoicesValidationMiddleware` | Ensure selected tool is in available list |
 | `ToolBoundaryMiddleware` | Prevent tool→tool calls (single hop only) |
-| `SuggestionHandoffMiddleware` | Capture smart_suggestions plan mode output |
 | `ToolProgressMiddleware` | Emit per-tool progress labels |
 | `RetryModelCallMiddleware` | Retry on transient LLM failures |
 
@@ -445,22 +422,9 @@ class Settings:
 
 ## 7. Integration Points
 
-### 7.1 Multi-Action ↔ Smart Suggestions
+---
 
-```
-smart_suggestions (plan mode)
-    │
-    ▼ SuggestionHandoffMiddleware captures suggestion_envelope
-    │
-    ▼ _route_after_agent() detects mode="plan"
-    │
-    ▼ extract_multi_actions_node()
-    │   └── build_suggestion_handoff() → action queue
-    │
-    ▼ execute_single_action() with nested suggestions
-```
-
-### 7.2 Search ↔ Multi-Action
+## 7. Integration Points
 
 ```
 Multi-action queue with web_search
