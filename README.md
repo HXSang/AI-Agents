@@ -235,36 +235,121 @@ Compare today vs week/month/baseline for:
 
 ```
 AI-Agents/
-├── app/                          # Chatbot Agent
-│   ├── ai_agents/
-│   │   ├── hybrid_workflow.py    # Main LangGraph orchestration
-│   │   ├── multi_action/         # Multi-action system
-│   │   │   ├── multi_action_extractor.py
-│   │   │   ├── multi_action_prompt.py
-│   │   │   └── multi_action_store.py
-│   │   ├── tools/                # Tool ecosystem
-│   │   │   ├── search_tools.py
-│   │   │   └── executor/
-│   │   │       ├── web_search_executor.py
-│   │   │       └── search_providers/
-│   │   │           └── tavily_provider.py
-│   │   └── middleware/
-│   │       └── ai_middleware.py
-│   └── docs/
-│       └── multi-action-search-workflow.md
+├── app/                                # Chatbot Agent
+│   ├── main.py                         # FastAPI entrypoint
+│   ├── README.md
+│   └── ai_agents/
+│       ├── hybrid_workflow.py          # Main LangGraph orchestration
+│       ├── multi_action/               # Multi-action system
+│       │   ├── multi_action_extractor.py
+│       │   ├── multi_action_prompt.py
+│       │   ├── multi_action_store.py
+│       │   ├── suggestion_to_actions.py
+│       │   └── draft_edit.py
+│       ├── tools/                      # Tool ecosystem
+│       │   ├── search_tools.py
+│       │   ├── validate/               # Argument & pending-action validation
+│       │   │   ├── pending_action_manager.py
+│       │   │   └── prompts/
+│       │   │       └── search_prompt.py
+│       │   └── executor/
+│       │       ├── web_search_executor.py
+│       │       └── search_providers/
+│       │           ├── base_provider.py
+│       │           ├── tavily_provider.py
+│       │           ├── aws_kendra_provider.py
+│       │           └── google_provider.py
+│       └── middleware/
+│           └── ai_middleware.py        # Middleware chain (8 middlewares)
 │
-├── chatbot-backend/              # Insight Pipeline
-│   ├── insights/
-│   │   ├── services/
-│   │   │   └── advanced_insight_service.py
-│   │   ├── prompts/             # LLM prompts
-│   │   ├── health/
-│   │   │   └── health_processor/ # Signal processors
-│   │   └── processors/          # Data processors
-│   └── docs/
-│       └── workflow-v2.md
+├── chatbot-backend/                    # Insight Pipeline
+│   ├── main.py                         # FastAPI entrypoint
+│   ├── README.md
+│   ├── requirements.txt
+│   ├── routers/                        # HTTP route handlers
+│   │   ├── insight_router.py
+│   │   └── health_router.py
+│   ├── agents/                         # LLM orchestration & auditing
+│   │   ├── llm_manager.py
+│   │   ├── llm_helper.py
+│   │   ├── prompt.py
+│   │   ├── prompt_coherence_auditor.py
+│   │   └── insight_coherence_auditor.py
+│   ├── clients/                        # External service clients
+│   │   ├── redis_client.py
+│   │   └── rabbitmq_client.py
+│   ├── models/                         # Pydantic data models
+│   ├── modules/
+│   │   └── data_collector.py
+│   ├── services/                       # Domain services & data prep
+│   │   ├── service_factory.py
+│   │   ├── insight_service.py
+│   │   ├── health_data_service.py
+│   │   ├── init_session_service.py
+│   │   ├── external_api_service.py
+│   │   └── executor/
+│   │       ├── cache_helpers.py
+│   │       ├── constant.py
+│   │       ├── prepare_calendar_data.py
+│   │       ├── prepare_health_data.py
+│   │       └── prepare_time_data.py
+│   └── insights/                       # Insight generation core
+│       ├── data_processor.py
+│       ├── insight_config.py
+│       ├── rule_guards.yaml
+│       ├── services/                   # Insight services
+│       │   ├── advanced_insight_service.py   # Q&A + Random insight orchestrator
+│       │   ├── base.py
+│       │   ├── insight_picker.py
+│       │   ├── financial_base.py
+│       │   ├── financial_executor.py
+│       │   ├── monthly_base.py
+│       │   └── monthly_executor.py
+│       ├── prompts/                    # LLM prompts & guardrails
+│       │   ├── core_persona.py
+│       │   ├── qa_prompts.py
+│       │   ├── domain_rules.py
+│       │   ├── context_narrative_templates.py
+│       │   └── insight_guardrails.py
+│       ├── schemas/                    # Pydantic schemas
+│       │   ├── insight_pool.py
+│       │   ├── insight_item.py
+│       │   └── processed_context.py
+│       ├── helpers/                    # Validation & utility helpers
+│       │   ├── insight_validator.py
+│       │   ├── question_gate.py
+│       │   ├── empty_value_cleanser.py
+│       │   └── day_profile.py
+│       ├── processors/                 # Productivity signal processors
+│       │   ├── productivity_signal_processor.py
+│       │   ├── productivity_calendar_processor.py
+│       │   ├── productivity_reminder_processor.py
+│       │   ├── balance_snapshot_processor.py
+│       │   ├── goal_progress_processor.py
+│       │   ├── work_hours_processor.py
+│       │   ├── finance_signal_processor.py
+│       │   ├── historical_trends_processor.py
+│       │   ├── calendar_intelligence_processor.py
+│       │   ├── behavioral_pattern_processor.py
+│       │   └── reminder_signal_processor.py
+│       └── health/                     # Health signal extraction
+│           ├── extractor.py
+│           ├── field_keep_maps.py
+│           ├── canonical_field_mapping.py
+│           └── health_processor/       # Per-focus signal processors
+│               ├── processor.py
+│               ├── signal_processor.py
+│               ├── period_metrics.py
+│               ├── common/
+│               ├── context/
+│               ├── sleep/
+│               ├── heart_rate/         # Includes legacy_cardio.py
+│               ├── steps/
+│               ├── energy/
+│               ├── mood/
+│               └── health_score/
 │
-└── chatbot-frontend/            # User interface (separate repo)
+└── chatbot-frontend/                   # User interface (separate repo)
 ```
 
 ---
