@@ -1,5 +1,4 @@
 # Chatbot Agent — Workflow Reference
-
 > **Stack**: LangGraph → `HybridWorkflow` (LangChain ReAct Agent + LLM) → Tool Executors → External APIs (Tavily Search, Calendar, Health, Finance, etc.)
 
 ---
@@ -261,54 +260,9 @@ extract_operations() → [
 
 ---
 
-## 4. Tool Ecosystem
+## 4. Hybrid Workflow (Orchestration)
 
-### 4.1 All Available Tools
-
-| Category | Tools |
-|---|---|
-| **Calendar** | `create_event_by_name`, `update_event_by_name`, `delete_event_by_name`, `sync_event_by_name` |
-| **Reminder** | `create_reminder`, `update_reminder`, `delete_reminder`, `mark_off_reminder` |
-| **Health** | `set_health_goal`, `get_health_goals`, `get_health_metrics` |
-| **Finance** | `create_finance_logs`, `get_finance_summary` |
-| **Balance** | `get_balance_scores` |
-| **Productivity** | `get_productivity_summary`, `get_tasks` |
-| **Company Info** | `get_company_info` |
-| **Profile** | `get_user_profile`, `get_goals`, `get_calendar_preferences` |
-| **Search** | `web_search` |
-
-### 4.2 Tool Creation Pattern
-
-```python
-def create_search_tools(
-    user_id: str,
-    llm: Any,
-    session_id: Optional[str] = None,
-    user_data: Optional[Dict[str, Any]] = None,
-    timezone: Optional[str] = None,
-    language: Optional[str] = None,
-) -> List[BaseTool]:
-    # 1. Initialize executor
-    executor = WebSearchToolExecutor(
-        user_id=user_id, llm=llm, session_id=session_id, today_str=today_str
-    )
-
-    # 2. Build tool description
-    tool_description = create_query_formulation_prompt(...)
-
-    # 3. Define tool with @tool decorator
-    @tool(description=tool_description)
-    async def web_search(search_query: str, query_type: str) -> str:
-        return await executor.execute_search(search_query, user_lang, query_type)
-
-    return [web_search]
-```
-
----
-
-## 5. Hybrid Workflow (Orchestration)
-
-### 5.1 State Definition
+### 4.1 State Definition
 
 ```python
 class HybridState(TypedDict):
@@ -336,7 +290,7 @@ class HybridState(TypedDict):
     error: Optional[str]
 ```
 
-### 5.2 Node Graph
+### 4.2 Node Graph
 
 ```
 check_quick_reply
@@ -369,7 +323,7 @@ merge_preprocess (barrier)
         └── execute_agent → validate_output
 ```
 
-### 5.3 Middleware Chain (Agent Execution)
+### 4.3 Middleware Chain (Agent Execution)
 
 | Middleware | Purpose |
 |---|---|
@@ -384,9 +338,9 @@ merge_preprocess (barrier)
 
 ---
 
-## 6. Constants & Configuration
+## 5. Constants & Configuration
 
-### 6.1 Quick Reply Values
+### 5.1 Quick Reply Values
 
 ```python
 class QuickReply:
@@ -396,7 +350,7 @@ class QuickReply:
     LABEL_KEY_CANCEL = "cancel"
 ```
 
-### 6.2 Tool Status
+### 5.2 Tool Status
 
 ```python
 class ToolStatus:
@@ -409,7 +363,7 @@ class ToolStatus:
     OVERLAPPING = "overlapping"
 ```
 
-### 6.3 Configuration
+### 5.3 Configuration
 
 ```python
 # app/config.py
@@ -420,7 +374,7 @@ class Settings:
 
 ---
 
-## 7. Integration Points
+## 6. Integration Points
 
 ```
 Multi-action queue with web_search
@@ -434,9 +388,9 @@ Multi-action queue with web_search
 
 ---
 
-## 8. Key Prompt Templates
+## 7. Key Prompt Templates
 
-### 8.1 Multi-Action Extract Prompt
+### 7.1 Multi-Action Extract Prompt
 
 Key rules in `extract_operations_prompt()`:
 - Every distinct intent → separate action
@@ -446,21 +400,21 @@ Key rules in `extract_operations_prompt()`:
 - VIETNAMESE TIME: 'rưỡi' = :30, 'kém' = before hour
 - RECURRING → tool_name: "none" (unsupported)
 
-### 8.2 Plan Confirmation Prompt
+### 7.2 Plan Confirmation Prompt
 
 Generates friendly bulleted list with:
 - Future tense ("I will...")
 - Emoji per bullet
 - One confirm question ("Shall we proceed?")
 
-### 8.3 Connective Tissue Prompt
+### 7.3 Connective Tissue Prompt
 
 Generates transition between actions:
 - React to current result
 - Flow naturally to next action
 - One specific question about next step
 
-### 8.4 Search Query Formulation Prompt
+### 7.4 Search Query Formulation Prompt
 
 Key rules:
 - volatile → NO date appended, generic terms ("today")
@@ -470,7 +424,7 @@ Key rules:
 
 ---
 
-## 9. Failure Modes
+## 8. Failure Modes
 
 | Scenario | Behavior |
 |---|---|
@@ -484,7 +438,7 @@ Key rules:
 
 ---
 
-## 10. Example Flows
+## 9. Example Flows
 
 ### 10.1 Simple Multi-Action
 
