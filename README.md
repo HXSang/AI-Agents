@@ -115,13 +115,6 @@ merge_preprocess (barrier)
 | `ToolProgressMiddleware` | Emit per-tool progress labels |
 | `RetryModelCallMiddleware` | Retry on transient LLM failures |
 
-### Quick Links
-
-- **Detailed Documentation**: [`app/docs/multi-action-search-workflow.md`](app/docs/multi-action-search-workflow.md)
-- **Main Workflow**: [`app/ai_agents/hybrid_workflow.py`](app/ai_agents/hybrid_workflow.py)
-- **Multi-Action Core**: [`app/ai_agents/multi_action/`](app/ai_agents/multi_action/)
-- **Search Tool**: [`app/ai_agents/tools/search_tools.py`](app/ai_agents/tools/search_tools.py)
-
 ---
 
 ## 2. Insight Pipeline (`chatbot-backend/`)
@@ -202,33 +195,6 @@ Compare today vs week/month/baseline for:
     }
 }
 ```
-
-### API Endpoints
-
-| Endpoint | Description |
-|---|---|
-| `POST /insight/productivity` | Get productivity insight |
-| `POST /insight/health_insight` | Get health insight |
-| `POST /insight/overall_insight` | Get overall insight |
-| `POST /insight/random_insight` | Get random insight from pool |
-| `POST /insight/debug` | Full pipeline debug dump |
-
-### Cache Inventory
-
-| Key | TTL | Description |
-|---|---|---|
-| `qa_insight:{uid}:{domain}:{lang}` | 300s | Primary insight cache |
-| `extracted_signals:pipeline_v3:{uid}:{domain}` | 300s | Domain-scoped signals |
-| `insight_pool:v2:{uid}` | — | Random insight pool |
-| `insight_seen:v2:{uid}` | — | Seen tracking |
-
-### Quick Links
-
-- **Detailed Documentation**: [`chatbot-backend/docs/workflow-v2.md`](chatbot-backend/docs/workflow-v2.md)
-- **Main Service**: [`chatbot-backend/insights/services/advanced_insight_service.py`](chatbot-backend/insights/services/advanced_insight_service.py)
-- **Signal Processors**: [`chatbot-backend/insights/health/health_processor/`](chatbot-backend/insights/health/health_processor/)
-- **Prompts**: [`chatbot-backend/insights/prompts/`](chatbot-backend/insights/prompts/)
-
 ---
 
 ## 3. Project Structure
