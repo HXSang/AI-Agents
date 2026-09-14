@@ -338,32 +338,7 @@ merge_preprocess (barrier)
 
 ---
 
-## 5. Constants & Configuration
-
-### 5.1 Quick Reply Values
-
-```python
-class QuickReply:
-    MULTI_ACTION_CONTINUE = "multi_action_continue"
-    MULTI_ACTION_CANCEL = "multi_action_cancel"
-    LABEL_KEY_CONFIRM = "confirm"
-    LABEL_KEY_CANCEL = "cancel"
-```
-
-### 5.2 Tool Status
-
-```python
-class ToolStatus:
-    SUCCESS = "success"
-    ERROR = "error"
-    NEED_CONFIRMATION = "need_confirmation"
-    MISSING = "missing"
-    SUGGEST = "suggest"
-    EDITING = "editing"
-    OVERLAPPING = "overlapping"
-```
-
-### 5.3 Configuration
+## 5. Configuration
 
 ```python
 # app/config.py
@@ -388,43 +363,7 @@ Multi-action queue with web_search
 
 ---
 
-## 7. Key Prompt Templates
-
-### 7.1 Multi-Action Extract Prompt
-
-Key rules in `extract_operations_prompt()`:
-- Every distinct intent → separate action
-- tool_name MUST match exact tool name
-- SEARCH RULE 1: General research → NO date
-- SEARCH RULE 2: Time-sensitive → MUST append current date
-- VIETNAMESE TIME: 'rưỡi' = :30, 'kém' = before hour
-- RECURRING → tool_name: "none" (unsupported)
-
-### 7.2 Plan Confirmation Prompt
-
-Generates friendly bulleted list with:
-- Future tense ("I will...")
-- Emoji per bullet
-- One confirm question ("Shall we proceed?")
-
-### 7.3 Connective Tissue Prompt
-
-Generates transition between actions:
-- React to current result
-- Flow naturally to next action
-- One specific question about next step
-
-### 7.4 Search Query Formulation Prompt
-
-Key rules:
-- volatile → NO date appended, generic terms ("today")
-- stable → NO date, full scan
-- Follow-up with citations → NEW search required
-- Location: local → append location, global → no location
-
----
-
-## 8. Failure Modes
+## 7. Failure Modes
 
 | Scenario | Behavior |
 |---|---|
@@ -438,9 +377,9 @@ Key rules:
 
 ---
 
-## 9. Example Flows
+## 8. Example Flows
 
-### 9.1 Simple Multi-Action
+### 8.1 Simple Multi-Action
 
 ```
 User: "Schedule a meeting with An at 3pm and remind me to prepare slides"
@@ -464,7 +403,7 @@ User clicks Continue
 Summary → "✅ Done! Meeting with An at 15:00 and reminder are all set."
 ```
 
-### 9.2 Search + Multi-Action
+### 8.2 Search + Multi-Action
 
 ```
 User: "Check SJC gold price today, if under 100 million remind me to buy"
@@ -485,7 +424,7 @@ User clicks Continue
 Summary → "✅ SJC gold is at 98.5 million — below 100 million! Reminder created."
 ```
 
-### 9.3 Cancel Mid-Flow
+### 8.3 Cancel Mid-Flow
 
 ```
 User clicks Cancel after action_1 completes
