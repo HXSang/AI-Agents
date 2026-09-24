@@ -181,19 +181,6 @@ Compare today vs week/month/baseline for:
         "confidence": 0.85
     }
 }
-
-# Random Insight
-{
-    "status": "success",
-    "insight": {
-        "point1": "...",
-        "domain": "health",
-        "current_state": "...",
-        "cause": "...",
-        "action": "...",
-        "evidence": "..."
-    }
-}
 ```
 ---
 
